@@ -173,7 +173,10 @@ export const resume = {
       title: 'Student Volunteer',
       org: 'Dunbar Community Centre Association',
       dates: 'Sep 2024 – Jun 2026',
-      bullets: ['Supported newly arrived Chinese families in Mandarin and Cantonese at community programs and events.'],
+      bullets: [
+        'Supported newly arrived Chinese families in Mandarin and Cantonese at community programs and events.',
+        'Interpreted for families at community events, helping them get past language and cultural barriers.',
+      ],
     },
     {
       title: 'Sergeant, Section Commander',
