@@ -86,6 +86,8 @@ export class Game {
   private bangT = 0;
   private bangRate = 1;
   private coarse = matchMedia('(pointer: coarse)').matches;
+  private tapFrom: { x: number; y: number } | null = null; // where a touch began, until it lifts
+  private stick = { x: 0, y: 0 }; // the on-screen joystick on phones, each axis -1 to 1
   private mottle: HTMLCanvasElement | null = null;
   private flip: { t: number; switched: boolean; angle: number } | null = null;
   private bg: { x: number; y: number; s: number; a: number; p: number; layer: number }[] = [];
@@ -157,6 +159,7 @@ export class Game {
     this.raf = requestAnimationFrame(this.frame);
   }
   stop() {
+    if (!this.running) return; // already stopped: nothing to cancel, and no reason to redraw a galaxy nobody can see
     this.running = false;
     cancelAnimationFrame(this.raf);
     this.keys.clear();
@@ -230,6 +233,13 @@ export class Game {
     this.zoomTarget = this.cam.zoom = this.overviewZoom();
     this.cam.x = this.cam.y = 0;
     this.start();
+  }
+  /** Steering from the on-screen joystick. (0, 0) lets go. */
+  setStick(x: number, y: number) {
+    this.stick.x = x;
+    this.stick.y = y;
+    if (x || y) this.auto = null;
+    this.activeAt = performance.now();
   }
   /** Skip straight to the finished galaxy. */
   reveal() {
@@ -415,6 +425,12 @@ export class Game {
         return;
       }
       const p = pos(e);
+      if (this.coarse) {
+        // on a touch screen nothing happens until the finger lifts: the same touch may turn out to be a swipe that scrolls the page
+        this.pointer = { x: p.x, y: p.y, held: true, moved: false, downAt: performance.now() };
+        this.tapFrom = { x: p.x, y: p.y };
+        return;
+      }
       const z = this.zoneAt(p.x, p.y);
       if (z) {
         this.flyTo(z);
@@ -430,6 +446,20 @@ export class Game {
       this.auto = null;
     });
     const up = () => {
+      if (this.coarse) {
+        const from = this.tapFrom;
+        this.tapFrom = null;
+        const tapped = this.pointer.held && from && performance.now() - this.pointer.downAt < 450 && Math.hypot(this.pointer.x - from.x, this.pointer.y - from.y) < 14;
+        this.pointer.held = false;
+        if (!tapped) return;
+        // a tap: land on the planet under it, dive into the core, or set a waypoint in open space
+        const z = this.zoneAt(from.x, from.y);
+        const w = this.toWorld(from.x, from.y);
+        if (z) this.flyTo(z);
+        else if (Math.hypot(w.x, w.y) < 70) this.diveIntoCore();
+        else this.auto = { x: w.x, y: w.y, zone: null };
+        return;
+      }
       if (this.pointer.held && performance.now() - this.pointer.downAt < 220) {
         // a quick click on empty space sets a waypoint
         const w = this.toWorld(this.pointer.x, this.pointer.y);
@@ -438,7 +468,10 @@ export class Game {
       this.pointer.held = false;
     };
     c.addEventListener('pointerup', up);
-    c.addEventListener('pointercancel', () => (this.pointer.held = false));
+    c.addEventListener('pointercancel', () => {
+      this.pointer.held = false;
+      this.tapFrom = null; // the touch became a scroll
+    });
     // the mouse wheel is left alone so it scrolls the page down to the resume
   }
 
@@ -451,6 +484,8 @@ export class Game {
       this.flip ||
       this.auto ||
       this.keys.size > 0 ||
+      this.stick.x !== 0 ||
+      this.stick.y !== 0 ||
       this.pointer.held ||
       this.motes.length > 0 ||
       this.shoot ||
@@ -505,7 +540,12 @@ export class Game {
     let ix = (k.has('ArrowRight') || k.has('KeyD') ? 1 : 0) - (k.has('ArrowLeft') || k.has('KeyA') ? 1 : 0);
     let iy = (k.has('ArrowDown') || k.has('KeyS') ? 1 : 0) - (k.has('ArrowUp') || k.has('KeyW') ? 1 : 0);
 
-    if (this.pointer.held && performance.now() - this.pointer.downAt > 120) {
+    if (Math.hypot(this.stick.x, this.stick.y) > 0.14) {
+      ix = this.stick.x;
+      iy = this.stick.y;
+    }
+    // holding on empty space steers with a mouse; phones have the joystick instead, so a drag there is free to scroll the page
+    if (!this.coarse && this.pointer.held && performance.now() - this.pointer.downAt > 120) {
       const w = this.toWorld(this.pointer.x, this.pointer.y);
       const dx = w.x - s.x;
       const dy = w.y - s.y;
@@ -931,7 +971,7 @@ export class Game {
     }
 
     // labels in screen space so text stays crisp
-    const compact = this.overview && this.W < 700;
+    const compact = this.overview && Math.min(this.W, this.H) < 700; // phones, upright or sideways: short labels that cannot collide
     for (const z of this.showLabels && live ? zones : []) {
       const p = this.toScreen(z.x, z.y);
       if (p.x < -80 || p.x > W + 80 || p.y < -80 || p.y > H + 80) continue;

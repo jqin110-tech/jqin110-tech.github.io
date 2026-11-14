@@ -652,7 +652,7 @@ const REST = [0.85, 0.9, 0.999];
 export function mountMotion(root: HTMLElement, calm: boolean) {
   const html = document.documentElement;
   html.classList.toggle('calm', calm);
-  const phoneMq = matchMedia('(max-width: 860px)');
+  const phoneMq = matchMedia('(max-width: 860px), (pointer: coarse) and (max-height: 520px)');
   let phone = false;
   const inkOf = (el: HTMLElement): Ink => {
     const s = getComputedStyle(el);

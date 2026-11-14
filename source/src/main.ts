@@ -63,6 +63,7 @@ let touchGuard = false;
 const toastEl = $('[data-toast]');
 const land = $<HTMLButtonElement>('[data-land]');
 const resumeView = $('#resume');
+const gameView = $('#game-view');
 
 let toastTimer = 0;
 function toast(msg: string) {
@@ -86,9 +87,10 @@ const game = new Game(canvas, {
   onNotice: toast,
   onDimension: setDimension,
   onReady() {
+    gameView.classList.add('live');
     syncMap();
     if (bangToast) {
-      toast(coarse.matches ? 'Hold anywhere to fly. Tap a planet to land.' : 'Fly with the arrow keys, or click a planet.');
+      toast(coarse.matches ? 'Use the stick to fly. Tap a planet to land.' : 'Fly with the arrow keys, or click a planet.');
       // then point out the secret in the middle
       setTimeout(() => {
         if (!modalOpen() && scrolled < 0.5) toast(game.isLight ? 'The white hole in the centre leads back to dark mode.' : 'The black hole in the centre leads to light mode.');
@@ -308,6 +310,44 @@ $('[data-start]').addEventListener('click', () => {
   canvas.focus({ preventScroll: true });
 });
 
+// ---------- joystick (phones) ----------
+{
+  const stick = $('[data-stick]');
+  const knob = stick.firstElementChild as HTMLElement;
+  const REACH = 34; // px the knob can travel from the centre
+  let id = -1;
+  const move = (e: PointerEvent) => {
+    const r = stick.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    const d = Math.hypot(dx, dy) || 1;
+    const k = Math.min(1, d / REACH);
+    knob.style.transform = `translate(${((dx / d) * k * REACH).toFixed(1)}px, ${((dy / d) * k * REACH).toFixed(1)}px)`;
+    game.setStick((dx / d) * k, (dy / d) * k);
+  };
+  const drop = (e: PointerEvent) => {
+    if (e.pointerId !== id) return;
+    id = -1;
+    stick.classList.remove('held');
+    knob.style.transform = '';
+    game.setStick(0, 0);
+  };
+  stick.addEventListener('pointerdown', (e) => {
+    if (id !== -1) return;
+    e.preventDefault();
+    id = e.pointerId;
+    stick.setPointerCapture(id);
+    stick.classList.add('held');
+    move(e);
+  });
+  stick.addEventListener('pointermove', (e) => {
+    if (e.pointerId === id) move(e);
+  });
+  stick.addEventListener('pointerup', drop);
+  stick.addEventListener('pointercancel', drop);
+  stick.addEventListener('lostpointercapture', drop);
+}
+
 // ---------- keyboard ----------
 const GAME_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyA', 'KeyD', 'KeyW', 'KeyS']);
 function gameHasFocus() {
@@ -348,13 +388,14 @@ canvas.addEventListener('pointerdown', () => {
 });
 
 // ---------- while you fly, the page stays put ----------
-// Once the game has started, the wheel and touch drags no longer scroll the page, so the galaxy
-// can't be blurred by accident. The Resume button (or R) is the way down; scrolling works again there.
+// Once the game has started, the wheel no longer scrolls the page, so the galaxy can't be blurred by
+// accident. The Resume button (or R) is the way down; scrolling works again there.
+// Phones are different: the joystick does the flying, so a swipe is free to scroll like on any other page.
 let playing = false; // the title card has been dismissed
 let goingDown = false; // a deliberate trip to the resume is in progress
 let lockHintAt = -1e9;
-function syncLock() {
-  const on = playing && scrollY < 2 && !goingDown;
+function syncLock(y = scrollY) {
+  const on = playing && y < 2 && !goingDown && !coarse.matches;
   if (on !== locked) {
     locked = on;
     document.documentElement.classList.toggle('playing', on);
@@ -477,7 +518,7 @@ $$<HTMLAnchorElement>('.cv-tabs a').forEach((a) =>
 const reveals = $$('.reveal');
 const motion = mountMotion($('[data-cv]'), reduced.matches);
 // phones: blocks fade up once as they arrive, with nothing recalculated while the page scrolls
-const phone = matchMedia('(max-width: 860px)');
+const phone = matchMedia('(max-width: 860px), (pointer: coarse) and (max-height: 520px)');
 const appScroll = () => phone.matches && !reduced.matches;
 let arrivals: IntersectionObserver | null = null;
 function syncReveals() {
@@ -513,37 +554,64 @@ phone.addEventListener('change', () => {
 const nav = $('.cv-nav');
 const tabs = $$<HTMLAnchorElement>('.cv-tabs a');
 let ticking = false;
+// The page's height and where each section starts are measured when the layout changes, not on every scroll frame.
+// Asking for them mid-scroll makes a phone lay the whole page out again each frame, which is what makes it stutter.
+let pageH = 0;
+let sectionTops: [string, number][] = [];
+let stale = true;
+function measure() {
+  stale = false;
+  pageH = document.documentElement.scrollHeight;
+  sectionTops = cvSections.map((s2) => {
+    const el = document.getElementById(s2.id);
+    return [s2.id, el ? el.getBoundingClientRect().top + scrollY : Infinity] as [string, number];
+  });
+}
+new ResizeObserver(() => {
+  stale = true;
+  queue();
+}).observe(resumeView);
+let awayShown = '';
+let pageShown = '';
+let curShown = '-';
 function onScroll() {
   ticking = false;
+  // read first, write after: asking the page a question once styles have changed makes the browser redo them on the spot
   const vh = innerHeight;
-  scrolled = Math.min(1, Math.max(0, scrollY / vh));
-  // the galaxy softens and sinks back as the resume rises over it
-  document.documentElement.style.setProperty('--away', scrolled.toFixed(3));
+  const y = scrollY;
+  if (stale) measure();
+  scrolled = Math.min(1, Math.max(0, y / vh));
+  const left = pageH - vh - y;
+  const end = Math.min(1, Math.max(0, 1 - left / (vh * 0.35)));
+  // each block comes into focus as it rises from the bottom of the screen (wide screens only; phones play them once on arrival)
+  // near the end of the page everything snaps into focus, so the last blocks are never stuck blurry
+  const tops = appScroll() ? [] : reveals.map((el) => el.getBoundingClientRect().top);
+  motion.update(vh);
+
+  // the galaxy softens and sinks back as the resume rises over it; set on the galaxy alone, so the rest of the page is left in peace
+  const away = scrolled.toFixed(3);
+  if (away !== awayShown) gameView.style.setProperty('--away', (awayShown = away));
   // with nothing to soften, drop the filter altogether so the galaxy is not sent through one every frame
   document.documentElement.classList.toggle('at-top', scrolled < 0.002);
   if (scrolled >= 0.98) game.stop();
   else if (!modalOpen()) game.start();
-  // each block comes into focus as it rises from the bottom of the screen
-  // near the end of the page everything snaps into focus, so the last blocks are never stuck blurry
-  const left = document.documentElement.scrollHeight - vh - scrollY;
-  const end = Math.min(1, Math.max(0, 1 - left / (vh * 0.35)));
-  for (const el of appScroll() ? [] : reveals) {
-    const top = el.getBoundingClientRect().top;
+  tops.forEach((top, i) => {
+    const el = reveals[i];
     const f = reduced.matches ? 1 : Math.max(end, Math.min(1, Math.max(0, (vh * 0.98 - top) / (vh * 0.42))));
     el.style.setProperty('--f', f.toFixed(3));
     el.classList.toggle('sharp', f >= 0.999);
-  }
-  motion.update(vh);
-  nav.style.setProperty('--page', Math.min(1, Math.max(0, (scrollY - vh) / Math.max(1, document.documentElement.scrollHeight - vh * 2))).toFixed(4));
+  });
+  const page = Math.min(1, Math.max(0, (y - vh) / Math.max(1, pageH - vh * 2))).toFixed(4);
+  if (page !== pageShown) nav.style.setProperty('--page', (pageShown = page));
   if (scrolled > 0.2) goingDown = false;
-  syncLock();
+  syncLock(y);
   nav.classList.toggle('on', scrolled > 0.85);
   let cur = '';
-  for (const s2 of cvSections) {
-    const el = document.getElementById(s2.id);
-    if (el && el.getBoundingClientRect().top < vh * 0.4) cur = s2.id;
+  for (const [id, top] of sectionTops) if (top - y < vh * 0.4) cur = id;
+  if (cur !== curShown) {
+    curShown = cur;
+    tabs.forEach((t) => t.toggleAttribute('aria-current', t.hash === '#' + cur));
   }
-  tabs.forEach((t) => t.toggleAttribute('aria-current', t.hash === '#' + cur));
 }
 const queue = () => {
   if (!ticking) {
@@ -552,7 +620,10 @@ const queue = () => {
   }
 };
 addEventListener('scroll', queue, { passive: true });
-addEventListener('resize', queue);
+addEventListener('resize', () => {
+  stale = true;
+  queue();
+});
 $$('[data-print]').forEach((b) => b.addEventListener('click', () => print()));
 if (location.hash === '#resume') requestAnimationFrame(() => toResume());
 
@@ -565,7 +636,7 @@ document.addEventListener('visibilitychange', () => {
 });
 // let the galaxy drift behind the title card
 if (scrolled < 0.98) game.start();
-if (coarse.matches) $('[data-hint]').textContent = 'Hold anywhere to fly · tap a planet to land';
+if (coarse.matches) $('[data-hint]').textContent = 'Stick to fly · tap a planet to land';
 // print every role expanded, then put things back
 let closedForPrint: HTMLDetailsElement[] = [];
 addEventListener('beforeprint', () => {
