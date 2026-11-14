@@ -4292,3 +4292,235 @@ dialog#room.museum::backdrop {
     bottom: calc(50px + env(safe-area-inset-bottom));
   }
 }
+
+
+/* ---------- touch screens: laid out like a mobile game, not like a web page ----------
+   Top: the name, the map, one menu. Bottom corners: stick under the left thumb, landing button under the right.
+   The planet list, the resume link and full screen live in a sheet that slides up from the menu. */
+.hud-menu,
+.sheet-veil,
+.sheet-head,
+.sheet-more {
+  display: none;
+}
+@media (pointer: coarse) {
+  .game-view {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .game-view button,
+  .game-view a {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* a finger has no hover: nothing stays swollen after a tap */
+  .game-view .pill:hover,
+  .game-view .land:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* top bar */
+  .game-view .hud-right .checklist,
+  .game-view .hud-right .mode-compact,
+  .game-view .hud-right > [data-to-resume] {
+    display: none;
+  }
+  .game-view .hud-menu {
+    display: inline-flex;
+  }
+  .game-view .hud-right {
+    gap: 8px;
+  }
+  .game-view .hud .pill,
+  .game-view .hud .pill:hover {
+    min-height: 40px;
+    padding: 0 15px;
+    font-size: 11px;
+  }
+
+  /* left thumb */
+  .game-view .stick {
+    width: 124px;
+    height: 124px;
+    left: calc(18px + env(safe-area-inset-left));
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .game-view .stick i {
+    width: 50px;
+    height: 50px;
+    margin: -25px 0 0 -25px;
+  }
+
+  /* right thumb */
+  .game-view .land {
+    left: auto;
+    right: calc(22px + env(safe-area-inset-right));
+    bottom: calc(34px + env(safe-area-inset-bottom));
+    translate: none;
+    width: 96px;
+    height: 96px;
+    padding: 0 8px;
+    border-radius: 50%;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 4px;
+    text-align: center;
+    border-color: rgba(232, 184, 107, 0.7);
+    box-shadow: 0 0 0 7px rgba(232, 184, 107, 0.07), 0 8px 26px rgba(0, 0, 0, 0.45);
+  }
+  .game-view .land:active {
+    transform: scale(0.94);
+  }
+  .game-view .land b {
+    font: 500 13px/1 var(--mono);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dust);
+  }
+  .game-view .land span {
+    max-width: 76px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 400 12px/1.1 var(--display);
+    letter-spacing: 0.04em;
+  }
+
+  /* the menu sheet */
+  .game-view .sheet-veil {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    background: rgba(3, 4, 9, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .game-view.menu-open .sheet-veil {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .game-view .travel {
+    z-index: 8;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 90%;
+    padding: 8px max(16px, env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    overflow: hidden auto;
+    background: var(--panel-solid);
+    border-top: 1px solid var(--hair-2);
+    border-radius: 22px 22px 0 0;
+    pointer-events: auto;
+    touch-action: pan-y;
+    translate: 0 106%;
+    visibility: hidden;
+    transition: translate 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s 0.34s;
+  }
+  .game-view.menu-open .travel {
+    translate: 0 0;
+    visibility: visible;
+    transition: translate 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .game-view .sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 4px 0;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .sheet-close {
+    min-height: 44px;
+    padding: 0 6px;
+    border: 0;
+    background: none;
+    color: var(--star);
+    font: 400 14px/1 var(--display);
+    letter-spacing: 0.04em;
+  }
+  .game-view .travel ol {
+    width: auto;
+    margin: 0;
+    padding: 4px 0 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .game-view .travel .planet-pill,
+  .game-view .travel .planet-pill:hover {
+    width: 100%;
+    min-height: 52px;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 18px;
+    font-size: 15px;
+    color: var(--star);
+  }
+  .game-view .core-item {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .game-view .sheet-more {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--hair);
+  }
+  .game-view .sheet-more.one {
+    grid-template-columns: 1fr;
+  }
+  .game-view .sheet-more .pill,
+  .game-view .sheet-more .pill:hover {
+    min-height: 50px;
+    padding: 0 16px;
+    font: 400 14px/1 var(--display);
+    letter-spacing: 0.04em;
+  }
+}
+/* sideways: the sheet is wide and short, so the list runs across */
+@media (pointer: coarse) and (max-height: 520px) {
+  .game-view .travel ol {
+    grid-template-columns: repeat(4, 1fr);
+    padding-bottom: 8px;
+  }
+  .game-view .core-item {
+    grid-column: auto / span 2;
+  }
+  .game-view .travel .planet-pill,
+  .game-view .travel .planet-pill:hover {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .game-view .sheet-more {
+    padding-top: 8px;
+  }
+  .game-view .sheet-more .pill,
+  .game-view .sheet-more .pill:hover {
+    min-height: 44px;
+  }
+  .game-view .hud .pill,
+  .game-view .hud .pill:hover {
+    min-height: 36px;
+    padding: 0 13px;
+    font-size: 10px;
+  }
+  .game-view .stick {
+    bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+  .game-view .land {
+    width: 86px;
+    height: 86px;
+    bottom: calc(22px + env(safe-area-inset-bottom));
+  }
+}

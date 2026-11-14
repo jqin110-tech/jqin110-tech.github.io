@@ -80,7 +80,11 @@ const game = new Game(canvas, {
   onNear(z) {
     current = z ?? current;
     land.hidden = !z;
-    if (z) land.innerHTML = `<span class="mono">${z.code}</span> Land on ${z.title} <kbd>${coarse.matches ? 'TAP' : 'E'}</kbd>`;
+    if (z) {
+      // on a phone the landing control is a round thumb button; with a keyboard it is a hint pill
+      land.innerHTML = coarse.matches ? `<b>Land</b><span>${z.title}</span>` : `<span class="mono">${z.code}</span> Land on ${z.title} <kbd>E</kbd>`;
+      land.setAttribute('aria-label', `Land on ${z.title}`);
+    }
     $$('[data-travel] button').forEach((b) => b.toggleAttribute('aria-current', b.dataset.goto === z?.id));
   },
   onEnter: openRoom,
@@ -210,7 +214,7 @@ const mapBtn = $<HTMLButtonElement>('[data-map]');
 function syncMap() {
   const on = game.isOverview && game.isLive;
   mapBtn.setAttribute('aria-pressed', String(on));
-  $('[data-map-label]').textContent = on ? 'CLOSE MAP' : 'MAP';
+  $('[data-map-label]').textContent = on ? (coarse.matches ? 'CLOSE' : 'CLOSE MAP') : 'MAP';
 }
 mapBtn.addEventListener('click', () => {
   hideTitle();
@@ -306,15 +310,54 @@ function hideTitle(bang = false) {
 }
 $('[data-start]').addEventListener('click', () => {
   bangToast = true;
+  // on a phone the game takes the whole screen where the browser allows it (it does not on iPhone)
+  if (coarse.matches) goFullscreen();
   hideTitle(true);
   canvas.focus({ preventScroll: true });
 });
+
+// ---------- phone menu and full screen ----------
+const fsRoot = document.documentElement;
+const canFullscreen = typeof fsRoot.requestFullscreen === 'function' && document.fullscreenEnabled;
+function goFullscreen() {
+  if (!canFullscreen || document.fullscreenElement) return;
+  fsRoot.requestFullscreen({ navigationUI: 'hide' }).catch(() => {
+    /* refused: the game simply stays in the page */
+  });
+}
+{
+  const menuBtn = $<HTMLButtonElement>('[data-menu]');
+  const setMenu = (open: boolean) => {
+    gameView.classList.toggle('menu-open', open);
+    menuBtn.setAttribute('aria-expanded', String(open));
+    if (open) game.setStick(0, 0);
+  };
+  menuBtn.addEventListener('click', () => setMenu(!gameView.classList.contains('menu-open')));
+  $$('[data-menu-close]').forEach((b) => b.addEventListener('click', () => setMenu(false)));
+  // choosing anything in the menu closes it
+  $('.travel').addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('button, a')) setMenu(false);
+  });
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setMenu(false);
+  });
+  const fsBtn = $<HTMLButtonElement>('[data-fullscreen]');
+  if (canFullscreen) {
+    fsBtn.hidden = false;
+    const label = () => (fsBtn.textContent = document.fullscreenElement ? 'Leave full screen' : 'Full screen');
+    fsBtn.addEventListener('click', () => {
+      if (document.fullscreenElement) void document.exitFullscreen();
+      else goFullscreen();
+    });
+    document.addEventListener('fullscreenchange', label);
+  } else $('.sheet-more').classList.add('one');
+}
 
 // ---------- joystick (phones) ----------
 {
   const stick = $('[data-stick]');
   const knob = stick.firstElementChild as HTMLElement;
-  const REACH = 34; // px the knob can travel from the centre
+  const REACH = 38; // px the knob can travel from the centre
   let id = -1;
   const move = (e: PointerEvent) => {
     const r = stick.getBoundingClientRect();

@@ -6,6 +6,13 @@
     <title>Joshua Qin</title>
     <meta name="description" content="Joshua Qin, Honours Mathematics at the University of Waterloo. An interactive galaxy you can fly through, with the full resume below." />
     <meta name="theme-color" content="#030409" />
+    <!-- added to a phone's home screen, it opens like an app: no browser bars -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Joshua Qin" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Joshua Qin" />
     <meta property="og:description" content="Tired of reading resumes? This one is a game. Steer a little astronaut through a galaxy and land on a planet to read each part." />
@@ -43,6 +50,7 @@
           <button class="mode mode-compact" data-mode role="switch" aria-checked="true" aria-label="Dark mode" title="Dark mode"><span class="mode-track" aria-hidden="true"><i></i></span></button>
           <button class="pill" data-map aria-pressed="false"><span class="mono" data-map-label>MAP</span></button>
           <a class="pill" href="#resume" data-to-resume><span class="mono">RESUME ↓</span></a>
+          <button class="pill hud-menu" data-menu aria-expanded="false" aria-controls="travel"><span class="mono">MENU</span></button>
         </div>
       </header>
 
@@ -68,8 +76,14 @@
       <button class="land" data-land hidden></button>
       <div class="toast mono" role="status" aria-live="polite" data-toast></div>
 
-      <nav class="travel" aria-label="Planets">
+      <div class="sheet-veil" data-menu-close></div>
+      <nav class="travel" id="travel" aria-label="Planets">
+        <div class="sheet-head"><span class="mono">Go to</span><button class="sheet-close" data-menu-close>Close</button></div>
         <ol data-travel></ol>
+        <div class="sheet-more">
+          <a class="pill" href="#resume" data-to-resume>Read the resume ↓</a>
+          <button class="pill" data-fullscreen hidden>Full screen</button>
+        </div>
       </nav>
     </div>
 
