@@ -18,7 +18,8 @@ export const TEX_WORLD = GALAXY_R * 2 + 400; // world units covered by the textu
 
 /** Pre-render the galaxy disc (arms, dust, nebulae, map grid) into an offscreen canvas. */
 export function buildGalaxy(size: number, light = false): HTMLCanvasElement {
-  // light: a pastel daylight galaxy painted on pearl paper, not an inverted copy of the night one
+  // light: the galaxy on the far side of the hole. A glowing white disc, veils of opal colour, and stars of coloured ink.
+  // It is its own picture, not an inverted copy of the night one.
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const g = c.getContext('2d')!;
@@ -30,10 +31,10 @@ export function buildGalaxy(size: number, light = false): HTMLCanvasElement {
   // faint disc haze
   let grd = g.createRadialGradient(C, C, 0, C, C, R * 1.05);
   if (light) {
-    grd.addColorStop(0, 'rgba(255,222,186,0.6)');
-    grd.addColorStop(0.14, 'rgba(250,206,196,0.3)');
-    grd.addColorStop(0.5, 'rgba(200,198,238,0.14)');
-    grd.addColorStop(1, 'rgba(200,198,238,0)');
+    grd.addColorStop(0, 'rgba(255,255,255,0.98)');
+    grd.addColorStop(0.3, 'rgba(255,255,255,0.8)');
+    grd.addColorStop(0.7, 'rgba(255,255,255,0.4)');
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
   } else {
     grd.addColorStop(0, 'rgba(200,240,250,0.5)');
     grd.addColorStop(0.12, 'rgba(150,210,225,0.2)');
@@ -48,8 +49,30 @@ export function buildGalaxy(size: number, light = false): HTMLCanvasElement {
   const armAngle = (arm: number, r: number) => (arm / ARMS) * Math.PI * 2 + Math.log(r / 120) / Math.tan(PITCH);
 
   // nebula clouds along the arms
-  g.globalCompositeOperation = light ? 'source-over' : 'lighter';
-  for (let i = 0; i < 140; i++) {
+  g.globalCompositeOperation = light ? 'multiply' : 'lighter';
+  if (light) {
+    // veils of colour that change slowly along each arm: aqua by the white hole, then violet, then rose at the rim
+    const stops = [[104, 196, 240], [150, 140, 250], [196, 140, 246], [250, 150, 204]];
+    for (let i = 0; i < 420; i++) {
+      const arm = Math.floor(rand() * ARMS);
+      const r = 190 + Math.pow(rand(), 0.9) * (GALAXY_R - 230);
+      const a = armAngle(arm, r) + gauss(rand) * 0.12;
+      const x = C + Math.cos(a) * r * k;
+      const y = C + Math.sin(a) * r * k;
+      const sz = (30 + rand() * 80) * k;
+      const u = Math.min(0.999, Math.max(0, (r - 190) / (GALAXY_R - 230) + (arm - 1.5) * 0.08 + gauss(rand) * 0.09)) * 3;
+      const c0 = stops[Math.floor(u)];
+      const c1 = stops[Math.floor(u) + 1];
+      const m = u - Math.floor(u);
+      const hue = c0.map((v, j) => Math.round(v + (c1[j] - v) * m)).join(',');
+      grd = g.createRadialGradient(x, y, 0, x, y, sz);
+      grd.addColorStop(0, `rgba(${hue},${0.1 + rand() * 0.12})`);
+      grd.addColorStop(1, `rgba(${hue},0)`);
+      g.fillStyle = grd;
+      g.fillRect(x - sz, y - sz, sz * 2, sz * 2);
+    }
+  }
+  for (let i = 0; i < (light ? 0 : 140); i++) {
     const arm = Math.floor(rand() * ARMS);
     const r = 220 + rand() * (GALAXY_R - 260);
     const a = armAngle(arm, r) + gauss(rand) * 0.18;
@@ -57,17 +80,16 @@ export function buildGalaxy(size: number, light = false): HTMLCanvasElement {
     const y = C + Math.sin(a) * r * k;
     const s = (40 + rand() * 120) * k;
     const pick = rand();
-    const hue = light
-      ? pick < 0.3 ? '240,160,176' : pick < 0.55 ? '150,182,236' : pick < 0.8 ? '184,164,232' : '248,190,150'
-      : pick < 0.3 ? '255,120,150' : pick < 0.65 ? '120,170,255' : '170,140,255';
+    const hue = pick < 0.3 ? '255,120,150' : pick < 0.65 ? '120,170,255' : '170,140,255';
     grd = g.createRadialGradient(x, y, 0, x, y, s);
-    grd.addColorStop(0, `rgba(${hue},${(0.07 + rand() * 0.08) * (light ? 1.5 : 1)})`);
+    grd.addColorStop(0, `rgba(${hue},${0.07 + rand() * 0.08})`);
     grd.addColorStop(1, `rgba(${hue},0)`);
     g.fillStyle = grd;
     g.fillRect(x - s, y - s, s * 2, s * 2);
   }
 
   // stars: dense in the arms, a sprinkle everywhere, icier toward the core
+  if (light) g.globalCompositeOperation = 'source-over';
   for (let i = 0; i < 52000; i++) {
     const inArm = rand() < 0.78;
     let r: number;
@@ -86,13 +108,22 @@ export function buildGalaxy(size: number, light = false): HTMLCanvasElement {
     const cr = Math.round(170 + 50 * warm + rand() * 30);
     const cg = Math.round(185 + 65 * warm + rand() * 20);
     const cb = 255;
-    const s = rand() < 0.02 ? 1.8 : rand() < 0.2 ? 1.1 : 0.7;
+    const s = (rand() < 0.02 ? 1.8 : rand() < 0.2 ? 1.1 : 0.7) * (light ? 1.5 : 1);
     const al = 0.25 + rand() * 0.6;
-    g.fillStyle = light
-      ? warm > 0.3
-        ? `rgba(196,128,86,${al * 0.55})`
-        : `rgba(${88 + Math.round(rand() * 40)},${96 + Math.round(rand() * 30)},150,${al * 0.42})`
-      : `rgba(${Math.min(255, cr)},${Math.min(255, cg)},${cb},${al})`;
+    if (light) {
+      // ink stars: aqua near the white hole, indigo and violet through the arms, a few sparks of rose and pure white
+      const q = rand();
+      g.fillStyle =
+        q < 0.1
+          ? `rgba(255,255,255,${al})`
+          : q < 0.17
+            ? `rgba(214,84,160,${al * 0.8})`
+            : warm > 0.35
+              ? `rgba(${50 + Math.round(rand() * 30)},${140 + Math.round(rand() * 40)},204,${al * 0.85})`
+              : q < 0.62
+                ? `rgba(${50 + Math.round(rand() * 34)},${50 + Math.round(rand() * 30)},${160 + Math.round(rand() * 40)},${al * 0.9})`
+                : `rgba(${112 + Math.round(rand() * 30)},${78 + Math.round(rand() * 24)},210,${al * 0.82})`;
+    } else g.fillStyle = `rgba(${Math.min(255, cr)},${Math.min(255, cg)},${cb},${al})`;
     g.fillRect(x, y, s, s);
   }
 
@@ -106,7 +137,7 @@ export function buildGalaxy(size: number, light = false): HTMLCanvasElement {
     const y = C + Math.sin(a) * r * k;
     const s = (10 + rand() * 26) * k;
     grd = g.createRadialGradient(x, y, 0, x, y, s);
-    grd.addColorStop(0, light ? 'rgba(255,255,255,0.16)' : 'rgba(8,6,10,0.16)');
+    grd.addColorStop(0, light ? 'rgba(255,255,255,0.2)' : 'rgba(8,6,10,0.16)');
     grd.addColorStop(1, light ? 'rgba(255,255,255,0)' : 'rgba(8,6,10,0)');
     g.fillStyle = grd;
     g.fillRect(x - s, y - s, s * 2, s * 2);
@@ -115,17 +146,51 @@ export function buildGalaxy(size: number, light = false): HTMLCanvasElement {
   // bright bulge
   g.globalCompositeOperation = light ? 'source-over' : 'lighter';
   grd = g.createRadialGradient(C, C, 0, C, C, 260 * k);
-  grd.addColorStop(0, light ? 'rgba(255,246,228,0.95)' : 'rgba(215,248,255,0.85)');
-  grd.addColorStop(0.3, light ? 'rgba(252,214,178,0.45)' : 'rgba(150,215,230,0.32)');
-  grd.addColorStop(1, light ? 'rgba(250,200,170,0)' : 'rgba(120,190,210,0)');
+  grd.addColorStop(0, light ? 'rgba(255,255,255,0.95)' : 'rgba(215,248,255,0.85)');
+  grd.addColorStop(0.3, light ? 'rgba(255,255,255,0.5)' : 'rgba(150,215,230,0.32)');
+  grd.addColorStop(1, light ? 'rgba(255,255,255,0)' : 'rgba(120,190,210,0)');
   g.fillStyle = grd;
   g.beginPath();
   g.arc(C, C, 260 * k, 0, Math.PI * 2);
   g.fill();
   g.globalCompositeOperation = 'source-over';
 
+  if (light) {
+    // a scatter of four-point glints through the arms, the brightest things in this sky
+    for (let i = 0; i < 110; i++) {
+      const arm = Math.floor(rand() * ARMS);
+      const r = 200 + rand() * (GALAXY_R - 240);
+      const a = armAngle(arm, r) + gauss(rand) * 0.2;
+      const x = C + Math.cos(a) * r * k;
+      const y = C + Math.sin(a) * r * k;
+      const len = (7 + rand() * 15) * k;
+      const col = rand() < 0.6 ? '70,60,180' : rand() < 0.5 ? '60,150,206' : '204,90,164';
+      const al = 0.5 + rand() * 0.4;
+      for (const [dx, dy] of [[1, 0], [0, 1]] as const) {
+        const lg = g.createLinearGradient(x - dx * len, y - dy * len, x + dx * len, y + dy * len);
+        lg.addColorStop(0, `rgba(${col},0)`);
+        lg.addColorStop(0.5, `rgba(${col},${al})`);
+        lg.addColorStop(1, `rgba(${col},0)`);
+        g.strokeStyle = lg;
+        g.lineWidth = Math.max(1, 1.1 * k);
+        g.beginPath();
+        g.moveTo(x - dx * len, y - dy * len);
+        g.lineTo(x + dx * len, y + dy * len);
+        g.stroke();
+      }
+      const halo = g.createRadialGradient(x, y, 0, x, y, len * 0.5);
+      halo.addColorStop(0, 'rgba(255,255,255,0.95)');
+      halo.addColorStop(0.3, `rgba(${col},${al * 0.5})`);
+      halo.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = halo;
+      g.beginPath();
+      g.arc(x, y, len * 0.5, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+
   // cartographic grid: rings every 300 units, spokes every 30 degrees
-  const ink = light ? '168,124,64' : '232,184,107';
+  const ink = light ? '92,80,186' : '232,184,107';
   g.strokeStyle = `rgba(${ink},${light ? 0.12 : 0.07})`;
   g.lineWidth = Math.max(1, size / 2048);
   for (let r = 300; r < GALAXY_R; r += 300) {
@@ -165,185 +230,195 @@ export function buildGalaxy(size: number, light = false): HTMLCanvasElement {
   return c;
 }
 
-/** Pre-render the slow parts of the core: billowing dust walls and the face-on accretion rings. */
+/** World width of the pre-rendered picture of the galaxy's centre. */
 export const CORE_WORLD = 820;
-export function buildCore(size: number, light: boolean): HTMLCanvasElement {
+/** Radius of the black hole's shadow, in world units. */
+export const HOLE_R = 58;
+/** How flat the accretion disc looks: it is seen almost edge-on. */
+const DISC_TILT = 0.058;
+/**
+ * The colours of the centre on each side. In the night galaxy it is a black hole lit by white-hot gas.
+ * On the other side it is the same shape turned inside out: a white hole drawn in indigo ink that thins to violet and aqua.
+ */
+const HOLE_INK = {
+  dark: { hot: '255,249,238', warm: '255,222,184', far: '214,186,236', fill: '#010203' },
+  light: { hot: '46,38,136', warm: '124,96,216', far: '110,188,230', fill: '#ffffff' },
+};
+/**
+ * The hole at the centre, drawn the way gravity really bends light around it (the look the film Interstellar made famous):
+ * a round shadow with a thin ring around it, a thin accretion disc crossing in front,
+ * and the far side of that disc bent up and over the top, with a fainter copy underneath.
+ */
+function buildLensedHole(size: number, light: boolean): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const g = c.getContext('2d')!;
   const k = size / CORE_WORLD;
   const C = size / 2;
-  const rand = rng(23);
-  const blob = (x: number, y: number, r: number, col: string) => {
-    const grd = g.createRadialGradient(x, y, 0, x, y, r);
-    grd.addColorStop(0, col);
-    grd.addColorStop(1, col.replace(/[\d.]+\)$/, '0)'));
-    g.fillStyle = grd;
-    g.fillRect(x - r, y - r, r * 2, r * 2);
-  };
-  // cloud walls: a dark underside and a lit top on every billow gives them volume
-  for (let i = 0; i < 900; i++) {
-    const a = rand() * Math.PI * 2;
-    const r = 150 + Math.pow(rand(), 0.7) * 230;
-    const x = C + Math.cos(a) * r * k;
-    const y = C + Math.sin(a) * r * k;
-    const s = (14 + rand() * 40) * k;
-    const fade = Math.max(0, 1 - (r - 150) / 240);
-    if (light) {
-      // soft pastel cumulus: a rosy underside and a white sunlit top
-      blob(x + s * 0.25, y + s * 0.25, s, `rgba(${rand() < 0.5 ? '226,170,180' : '186,176,226'},${0.09 * fade})`);
-      blob(x - s * 0.2, y - s * 0.2, s * 0.8, `rgba(255,252,246,${(0.18 + rand() * 0.2) * fade})`);
-    } else {
-      blob(x + s * 0.25, y + s * 0.25, s, `rgba(18,30,36,${0.10 * fade})`);
-      const lit = 120 + Math.round(rand() * 80);
-      blob(x - s * 0.2, y - s * 0.2, s * 0.8, `rgba(${lit},${lit + 25},${lit + 30},${(0.05 + rand() * 0.07) * fade})`);
-    }
-  }
-  // inner glow
-  let grd = g.createRadialGradient(C, C, 0, C, C, 190 * k);
+  const R = HOLE_R * k;
+  const rand = rng(31);
+  const { hot, warm, far, fill } = light ? HOLE_INK.light : HOLE_INK.dark;
+  const op: GlobalCompositeOperation = light ? 'source-over' : 'lighter';
+  g.globalCompositeOperation = op;
+  // a soft glow in the gas around it: on the white side the hole bleaches the sky around itself
+  let grd = g.createRadialGradient(C, C, R, C, C, R * 6.2);
   if (light) {
-    grd.addColorStop(0, 'rgba(255,255,255,1)');
-    grd.addColorStop(0.14, 'rgba(255,240,214,0.9)');
-    grd.addColorStop(0.5, 'rgba(250,200,164,0.32)');
-    grd.addColorStop(1, 'rgba(240,184,176,0)');
+    grd.addColorStop(0, 'rgba(255,255,255,0.96)');
+    grd.addColorStop(0.35, 'rgba(255,255,255,0.6)');
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
   } else {
-    grd.addColorStop(0, 'rgba(240,255,255,0.95)');
-    grd.addColorStop(0.12, 'rgba(200,245,250,0.6)');
-    grd.addColorStop(0.5, 'rgba(120,200,215,0.18)');
-    grd.addColorStop(1, 'rgba(90,160,180,0)');
+    grd.addColorStop(0, `rgba(${warm},0.2)`);
+    grd.addColorStop(0.3, `rgba(${far},0.07)`);
+    grd.addColorStop(1, `rgba(${far},0)`);
+  }
+  g.fillStyle = grd;
+  g.fillRect(0, 0, size, size);
+  // the far side of the disc, bent over the top of the hole: thick above, thin below
+  const oy = -R * 0.24;
+  grd = g.createRadialGradient(C, C, R, C, C + oy, R * 1.62);
+  if (light) {
+    grd.addColorStop(0, `rgba(${hot},0.92)`);
+    grd.addColorStop(0.22, `rgba(${hot},0.66)`);
+    grd.addColorStop(0.5, `rgba(${warm},0.42)`);
+    grd.addColorStop(0.76, `rgba(${far},0.2)`);
+    grd.addColorStop(1, `rgba(${far},0)`);
+  } else {
+    grd.addColorStop(0, `rgba(${hot},0.95)`);
+    grd.addColorStop(0.3, `rgba(${hot},0.72)`);
+    grd.addColorStop(0.62, `rgba(${warm},0.4)`);
+    grd.addColorStop(0.82, `rgba(${far},0.1)`);
+    grd.addColorStop(1, `rgba(${far},0)`);
   }
   g.fillStyle = grd;
   g.beginPath();
-  g.arc(C, C, 190 * k, 0, Math.PI * 2);
+  g.arc(C, C + oy, R * 1.62, 0, Math.PI * 2);
   g.fill();
-  // fine concentric rings of the disk
-  for (let r = 14; r < 160; r += 1.6) {
-    const ra = (0.04 + 0.22 * Math.pow(1 - r / 160, 1.4)) * (0.5 + rand() * 0.8);
-    g.strokeStyle = light ? `rgba(196,140,80,${ra * 0.8})` : `rgba(225,250,255,${ra})`;
-    g.lineWidth = Math.max(0.6, 0.7 * k);
+  // fine streaks in it, following the bend
+  for (let i = 0; i < 70; i++) {
+    const f = rand();
+    const r = R * (1.03 + f * 0.6);
+    const cy = C + oy * f;
+    const a0 = rand() * Math.PI * 2;
+    g.strokeStyle = `rgba(${light ? (f > 0.5 ? far : '255,255,255') : hot},${(0.05 + rand() * 0.16) * (1 - f) * (light ? 1.6 : 1)})`;
+    g.lineWidth = Math.max(0.6, (0.6 + rand() * 1.2) * k);
     g.beginPath();
-    g.arc(C, C, r * k, 0, Math.PI * 2);
+    g.arc(C, cy, r, a0, a0 + 0.6 + rand() * 2.4);
     g.stroke();
+  }
+  // the disc itself, almost edge-on: fine rings, strongest at the inner edge and fading out softly at the rim
+  const rings: { r: number; col: string; al: number; lw: number }[] = [];
+  for (let i = 0; i < 520; i++) {
+    const f = Math.pow(rand(), 1.5); // most of the light is near the inner edge
+    const bright = Math.pow(1 - f, 2.1);
+    rings.push({
+      r: R * (1.2 + f * 3.3),
+      col: bright > 0.5 ? hot : bright > 0.16 ? warm : far,
+      al: (0.02 + rand() * 0.075) * (0.12 + bright) * Math.min(1, (1 - f) * 3.2),
+      lw: ((1.5 + rand() * 7) * k * 0.12) / DISC_TILT,
+    });
+  }
+  const disc = (from: number, to: number) => {
+    g.save();
+    g.translate(C, C + R * 0.05);
+    g.scale(1, DISC_TILT);
+    for (const q of rings) {
+      g.strokeStyle = `rgba(${q.col},${q.al})`;
+      g.lineWidth = q.lw;
+      g.beginPath();
+      g.arc(0, 0, q.r, from, to);
+      g.stroke();
+    }
+    g.restore();
+  };
+  disc(Math.PI, Math.PI * 2); // the far half, which the hole will hide where it passes behind
+  // the shadow: nothing comes back from the black one, and nothing can enter the white one
+  g.globalCompositeOperation = 'source-over';
+  g.fillStyle = fill;
+  g.beginPath();
+  g.arc(C, C, R, 0, Math.PI * 2);
+  g.fill();
+  g.globalCompositeOperation = op;
+  // the photon ring: light that has circled the hole
+  g.strokeStyle = `rgba(${hot},0.85)`;
+  g.lineWidth = Math.max(1, 1.3 * k);
+  g.beginPath();
+  g.arc(C, C, R * 1.012, 0, Math.PI * 2);
+  g.stroke();
+  disc(0, Math.PI); // the near half, crossing in front of the shadow
+  // the glow along the middle of the disc, strongest where it passes the hole
+  for (const [h, a, w] of [[R * 0.3, 0.1, 4.6], [R * 0.11, 0.26, 4.2], [R * 0.04, 0.75, 3.6]] as const) {
+    g.save();
+    g.translate(C, C + R * 0.1);
+    g.scale(1, h / (R * w));
+    const rg = g.createRadialGradient(0, 0, 0, 0, 0, R * w);
+    rg.addColorStop(0, `rgba(${hot},${a})`);
+    rg.addColorStop(0.4, `rgba(${warm},${a * 0.55})`);
+    rg.addColorStop(1, `rgba(${light ? far : warm},0)`);
+    g.fillStyle = rg;
+    g.beginPath();
+    g.arc(0, 0, R * w, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
   }
   return c;
 }
+export function buildCore(size: number, light: boolean): HTMLCanvasElement {
+  return buildLensedHole(size, light);
+}
 
-const JET_ANGLE = -0.55;
-const JET_LEN = 640;
-
-/** The quasar at the galactic core: dust walls, a face-on disk, a relativistic jet. */
+/** The centre of the galaxy: the pre-rendered hole, plus the gas that is seen moving round it. */
 export function drawCore(g: Ctx, t: number, light: boolean, tex: HTMLCanvasElement) {
   const base = g.globalAlpha; // the caller may be fading the whole core in
-  const ink = light ? '200,140,82' : '230,252,255';
-  g.save();
-  g.rotate(t * 0.015);
+  // it never turns: the disc stays level, the way the film framed it
   g.drawImage(tex, -CORE_WORLD / 2, -CORE_WORLD / 2, CORE_WORLD, CORE_WORLD);
-  g.restore();
-
-  // orbiting streaks: inner ones whip around faster
-  for (let i = 0; i < 46; i++) {
-    const r = 22 + ((i * 37) % 130);
-    const len = 0.3 + ((i * 13) % 10) / 10;
-    const a0 = i * 2.4 + t * (1.6 * Math.pow(30 / r, 1.5));
-    g.strokeStyle = `rgba(${ink},${0.1 + 0.25 * (1 - r / 160)})`;
-    g.lineWidth = 0.8 + (1 - r / 160) * 1.2;
-    g.beginPath();
-    g.arc(0, 0, r, a0, a0 + len);
-    g.stroke();
-  }
-
-  // jet and a faint counter-jet
   const prevOp = g.globalCompositeOperation;
   if (!light) g.globalCompositeOperation = 'lighter';
-  for (const [dir, len, a] of [[1, JET_LEN, 1], [-1, JET_LEN * 0.35, 0.35]] as const) {
-    const ex = Math.cos(JET_ANGLE) * len * dir;
-    const ey = Math.sin(JET_ANGLE) * len * dir;
-    const grd = g.createLinearGradient(0, 0, ex, ey);
-    grd.addColorStop(0, `rgba(${ink},${0.9 * a})`);
-    grd.addColorStop(0.6, `rgba(${ink},${0.35 * a})`);
-    grd.addColorStop(1, `rgba(${ink},0)`);
-    g.strokeStyle = grd;
-    g.lineCap = 'round';
-    g.lineWidth = 2.2;
-    g.beginPath();
-    g.moveTo(0, 0);
-    g.lineTo(ex, ey);
-    g.stroke();
-    g.lineWidth = 12;
-    g.globalAlpha = base * 0.18;
-    g.stroke();
-    g.globalAlpha = base;
-  }
-  // bright knots travelling up the jet
-  for (let i = 0; i < 12; i++) {
-    const f = (t * 0.12 + i / 12) % 1;
-    const d = 20 + f * JET_LEN;
-    const x = Math.cos(JET_ANGLE) * d;
-    const y = Math.sin(JET_ANGLE) * d;
-    const sz = (1.4 + (i % 3)) * (1 - f * 0.6);
-    g.fillStyle = `rgba(${ink},${0.85 * (1 - f)})`;
-    g.beginPath();
-    g.arc(x, y, sz, 0, Math.PI * 2);
-    g.fill();
-  }
-  // the big shock knot partway up
-  const kx = Math.cos(JET_ANGLE) * JET_LEN * 0.55;
-  const ky = Math.sin(JET_ANGLE) * JET_LEN * 0.55;
-  const kg = g.createRadialGradient(kx, ky, 0, kx, ky, 46);
-  kg.addColorStop(0, `rgba(${ink},0.75)`);
-  kg.addColorStop(0.3, `rgba(${ink},0.22)`);
-  kg.addColorStop(1, `rgba(${ink},0)`);
-  g.fillStyle = kg;
-  g.beginPath();
-  g.ellipse(kx, ky, 46, 18, JET_ANGLE, 0, Math.PI * 2);
-  g.fill();
-  g.globalCompositeOperation = prevOp;
-
-  if (!light) {
-    // the event horizon: a black disc, ringed by light bent around it
-    g.fillStyle = '#010203';
-    g.beginPath();
-    g.arc(0, 0, 24, 0, Math.PI * 2);
-    g.fill();
-    g.strokeStyle = 'rgba(190,235,250,0.22)';
-    g.lineWidth = 9;
-    g.beginPath();
-    g.arc(0, 0, 27, 0, Math.PI * 2);
-    g.stroke();
-    g.strokeStyle = 'rgba(255,250,240,0.95)';
-    g.lineWidth = 1.8;
-    g.beginPath();
-    g.arc(0, 0, 25.4, 0, Math.PI * 2);
-    g.stroke();
-    // the side of the disc turning toward you is brighter
-    const side = t * 0.25;
-    g.strokeStyle = 'rgba(255,255,255,0.9)';
-    g.lineWidth = 3.4;
-    g.lineCap = 'round';
-    g.beginPath();
-    g.arc(0, 0, 25.4, side, side + 1.9);
-    g.stroke();
-    g.lineCap = 'butt';
-    return;
-  }
-  // the white hole: a white-hot centre
-  const cg = g.createRadialGradient(0, 0, 0, 0, 0, 30);
-  cg.addColorStop(0, 'rgba(255,255,255,1)');
-  cg.addColorStop(1, light ? 'rgba(255,226,190,0)' : 'rgba(220,250,255,0)');
-  g.fillStyle = cg;
-  g.beginPath();
-  g.arc(0, 0, 30, 0, Math.PI * 2);
-  g.fill();
-  // on the light side the horizon is a white hole ringed in gold
-  g.fillStyle = light ? '#ffffff' : '#05080a';
-  g.beginPath();
-  g.arc(0, 0, 3.2, 0, Math.PI * 2);
-  g.fill();
+  g.lineCap = 'round';
   if (light) {
-    g.strokeStyle = 'rgba(190,130,70,0.8)';
-    g.lineWidth = 1;
+    // a white hole only gives: slow rings of colour leave it and thin out into the sky
+    for (let i = 0; i < 3; i++) {
+      const f = (t * 0.05 + i / 3) % 1;
+      const r = HOLE_R * (1.7 + f * 4.6);
+      g.strokeStyle = `rgba(${i === 1 ? '110,188,230' : '150,120,226'},${Math.sin(f * Math.PI) * 0.2 * (1 - f * 0.5)})`;
+      g.lineWidth = 1 + f * 2.2;
+      g.beginPath();
+      g.arc(0, 0, r, 0, Math.PI * 2);
+      g.stroke();
+    }
+  }
+  // gas racing round the disc: quick near the hole, slow at the rim. The part behind the hole is hidden.
+  const streak = light ? '72,58,176' : '255,246,230';
+  for (let i = 0; i < 44; i++) {
+    const f = ((i * 37) % 44) / 44;
+    const r = HOLE_R * (1.25 + f * 3.1);
+    const a = i * 2.4 + t * 0.9 * Math.pow(1.25 / (1.25 + f * 3.1), 1.5);
+    const len = 0.12 + ((i * 13) % 10) / 40;
+    const mid = a + len / 2;
+    if (Math.sin(mid) < 0 && Math.abs(Math.cos(mid) * r) < HOLE_R) continue;
+    g.save();
+    g.translate(0, HOLE_R * 0.05);
+    g.scale(1, DISC_TILT);
+    g.beginPath();
+    g.arc(0, 0, r, a, a + len);
+    g.restore();
+    g.strokeStyle = `rgba(${streak},${(0.16 + 0.4 * (1 - f)) * (Math.sin(mid) > 0 ? 1 : 0.55)})`;
+    g.lineWidth = 1.1 + (1 - f) * 1.3;
     g.stroke();
   }
+  // and a slow shimmer in the light bent over the top
+  for (let i = 0; i < 14; i++) {
+    const f = ((i * 5) % 14) / 14;
+    const r = HOLE_R * (1.05 + f * 0.5);
+    const a = i * 1.7 - t * 0.22 * (1.4 - f);
+    g.strokeStyle = `rgba(${light ? '255,255,255' : '255,250,240'},${(0.1 + 0.16 * (1 - f)) * (light ? 1.5 : 1)})`;
+    g.lineWidth = 1 + (1 - f);
+    g.beginPath();
+    g.arc(0, -HOLE_R * 0.24 * f, r, a, a + 0.5 + f * 0.6);
+    g.stroke();
+  }
+  g.lineCap = 'butt';
+  g.globalCompositeOperation = prevOp;
+  g.globalAlpha = base;
 }
 
 /** A planet lit from the galactic core (lightAngle points toward the light). */

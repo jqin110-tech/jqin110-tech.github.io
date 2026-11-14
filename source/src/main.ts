@@ -97,7 +97,7 @@ const game = new Game(canvas, {
       toast(coarse.matches ? 'Use the stick to fly. Tap a planet to land.' : 'Fly with the arrow keys, or click a planet.');
       // then point out the secret in the middle
       setTimeout(() => {
-        if (!modalOpen() && scrolled < 0.5) toast(game.isLight ? 'The black hole in the centre leads back to dark mode.' : 'The black hole in the centre leads to light mode.');
+        if (!modalOpen() && scrolled < 0.5) toast(game.isLight ? 'The white hole in the centre leads back to dark mode.' : 'The black hole in the centre leads to light mode.');
       }, 4400);
     }
     bangToast = false;
@@ -192,7 +192,7 @@ $('[data-travel]').innerHTML = zones
     <span class="half" aria-hidden="true"></span><span data-core-label>${startLight ? 'Dark mode' : 'Light mode'}</span></button></li>`;
 $('[data-core]').addEventListener('click', () => {
   hideTitle();
-  toast('Flying into the black hole…');
+  toast(game.isLight ? 'Flying into the white hole…' : 'Flying into the black hole…');
   game.diveIntoCore();
   canvas.focus({ preventScroll: true });
 });

@@ -1,4 +1,4 @@
-import { ASTRO, buildCore, buildGalaxy, CORE_WORLD, drawAstronaut, drawCore, drawPlanet, TEX_WORLD } from './draw';
+import { ASTRO, buildCore, buildGalaxy, CORE_WORLD, drawAstronaut, drawCore, drawPlanet, HOLE_R, TEX_WORLD } from './draw';
 import { GALAXY_R, PHI, SPIRAL_SPAN, spiral, zones, type Zone } from './zones';
 
 const DT = 1 / 60;
@@ -96,8 +96,12 @@ export class Game {
   private H = 600;
   private galaxy: HTMLCanvasElement;
   private galaxyLight: HTMLCanvasElement | null = null;
-  private readonly light = false; // the galaxy is always drawn dark (his choice); kept so the pastel palette is easy to bring back
-  private siteLight = false; // whether the rest of the site (rooms, resume) is in light mode
+  private siteLight = false; // which side of the hole we are on; the rest of the site (rooms, resume) follows it
+  private opalSky: HTMLCanvasElement | null = null;
+  /** True on the far side of the hole, where the galaxy is drawn as a white dimension. */
+  private get light() {
+    return this.siteLight;
+  }
   private coreTex: HTMLCanvasElement;
   private coreTexLight: HTMLCanvasElement | null = null;
   private coreSize: number;
@@ -235,6 +239,7 @@ export class Game {
   /** Set the dimension without the warp animation (used on load). */
   setLight(on: boolean) {
     this.siteLight = on;
+    if (on) this.ensureLightGalaxy();
     this.render();
   }
   get isLive() {
@@ -551,14 +556,35 @@ export class Game {
   }
   private ensureLightGalaxy() {
     if (!this.coreTexLight) this.coreTexLight = buildCore(this.coreSize, true);
+    if (!this.opalSky) {
+      // the sky of the white dimension: slow veils of opal colour, painted once and drifted behind everything
+      const c = document.createElement('canvas');
+      c.width = c.height = 320;
+      const o = c.getContext('2d')!;
+      let seed = 5;
+      const r = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      const hues = ['132,206,242', '178,156,250', '250,170,214', '150,230,212', '255,255,255', '255,255,255'];
+      for (let i = 0; i < 20; i++) {
+        const x = r() * 320;
+        const y = r() * 320;
+        const rad = 60 + r() * 110;
+        const hue = hues[i % hues.length];
+        const gr = o.createRadialGradient(x, y, 0, x, y, rad);
+        gr.addColorStop(0, `rgba(${hue},${hue === '255,255,255' ? 0.7 : 0.3 + r() * 0.16})`);
+        gr.addColorStop(1, `rgba(${hue},0)`);
+        o.fillStyle = gr;
+        o.fillRect(0, 0, 320, 320);
+      }
+      this.opalSky = c;
+    }
     if (this.galaxyLight) return;
-    // the other side: a pastel daylight galaxy painted for paper
+    // the other side: its own painting, not the night galaxy with the colours swapped
     this.galaxyLight = buildGalaxy(this.galaxy.width, true);
   }
   private get pal() {
     return this.light
-      ? { bg: '#f6f1ea', star: '96,100,150', gold: 'rgba(168,118,52,', text: '34,32,44', dim: '110,108,128', route: 'rgba(120,110,150,', vig: 'rgba(236,200,184,0.32)' }
-      : { bg: '#030409', star: '230,236,255', gold: 'rgba(232,184,107,', text: '240,236,228', dim: '170,176,196', route: 'rgba(200,210,240,', vig: 'rgba(0,0,0,0.55)' };
+      ? { bg: '#e9ebf8', star: '70,66,164', gold: 'rgba(94,76,198,', text: '28,26,58', dim: '100,100,140', route: 'rgba(110,104,186,', vig0: 'rgba(146,140,228,0)', vig: 'rgba(146,140,228,0.42)' }
+      : { bg: '#030409', star: '230,236,255', gold: 'rgba(232,184,107,', text: '240,236,228', dim: '170,176,196', route: 'rgba(200,210,240,', vig0: 'rgba(0,0,0,0)', vig: 'rgba(0,0,0,0.55)' };
   }
   tryEnter() {
     if (this.near) this.ev.onEnter(this.near);
@@ -852,7 +878,7 @@ export class Game {
         s.vx = Math.cos(f.angle) * 220;
         s.vy = Math.sin(f.angle) * 220;
         this.noticeAt = -99;
-        this.notice(this.siteLight ? 'Light mode is on for the planets and the resume. The galaxy stays dark.' : 'Back through the horizon. Dark mode restored.');
+        this.notice(this.siteLight ? 'You came out of a white hole. This is the light side.' : 'Back through the horizon. This is the dark side.');
       }
       if (f.t >= FLIP_TIME) this.flip = null;
     }
@@ -931,6 +957,15 @@ export class Game {
     const P = this.pal;
     g.fillStyle = P.bg;
     g.fillRect(0, 0, W, H);
+    if (this.light && this.opalSky) {
+      // the opal veils drift slowly on their own, and slide a little as you fly
+      const m = 160;
+      const drift = this.reducedMotion ? 0 : this.time * 0.05;
+      const ox = Math.max(-m, Math.min(m, -this.cam.x * 0.035 * zoom + Math.sin(drift) * 50));
+      const oy = Math.max(-m, Math.min(m, -this.cam.y * 0.035 * zoom + Math.cos(drift * 0.8) * 36));
+      g.drawImage(this.opalSky, ox - m, oy - m, W + m * 2, H + m * 2);
+    }
+    const INK = ['64,66,172', '124,96,214', '52,146,196', '206,92,160'];
 
     // deep-field stars with parallax
     for (const st of this.bg) {
@@ -963,6 +998,21 @@ export class Game {
         // the old sky is lost in the glare of the fireball; the new one switches on a star at a time
         lit = since > 0 ? Math.min(1, since / 0.03) * (1 + 1.6 * Math.exp(-since * 45)) : 0;
         if (lit <= 0.01) continue;
+      }
+      if (this.light) {
+        // on the white side the far stars are points of coloured ink, and the near ones are soft motes of white light
+        if (st.layer >= 3) {
+          g.fillStyle = `rgba(255,255,255,${Math.min(1, st.a * 3 * lit)})`;
+          g.beginPath();
+          g.arc(x, y, st.s * 1.5, 0, Math.PI * 2);
+          g.fill();
+        } else {
+          g.fillStyle = `rgba(${INK[Math.floor(st.p * 2.5) % 4]},${Math.min(1, st.a * tw * lit * 0.8)})`;
+          g.beginPath();
+          g.arc(x, y, st.s * 0.75, 0, Math.PI * 2);
+          g.fill();
+        }
+        continue;
       }
       g.fillStyle = `rgba(${P.star},${Math.min(1, st.a * tw * lit)})`;
       g.fillRect(x, y, st.s, st.s);
@@ -1078,6 +1128,12 @@ export class Game {
     }
     void CORE_WORLD;
 
+    // nothing drawn from here to the planets may show inside the hole: the route runs in behind it
+    g.save();
+    g.beginPath();
+    g.rect(-TEX_WORLD, -TEX_WORLD, TEX_WORLD * 2, TEX_WORLD * 2);
+    g.arc(0, 0, HOLE_R * 1.03, 0, Math.PI * 2);
+    g.clip('evenodd');
     // the route is a golden spiral, gold where you have travelled
     const seg = (t0: number, t1: number) => {
       g.beginPath();
@@ -1163,6 +1219,7 @@ export class Game {
         seg(-0.45, -0.45 + (SPIRAL_SPAN + 0.45) * settle);
       }
     }
+    g.restore();
 
     for (const [i, z] of zones.entries()) {
       const h = this.hover.get(z.id) ?? 0;
@@ -1423,7 +1480,7 @@ export class Game {
 
     // vignette
     const v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
-    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(0, P.vig0);
     v.addColorStop(1, P.vig);
     g.fillStyle = v;
     g.fillRect(0, 0, W, H);
@@ -1531,7 +1588,7 @@ export class Game {
     if (this.flip && !this.reducedMotion) {
       const k = Math.sin((this.flip.t / FLIP_TIME) * Math.PI);
       const goingLight = this.flip.switched ? this.siteLight : !this.siteLight;
-      const c = goingLight ? '246,241,234' : '3,4,9';
+      const c = goingLight ? '246,246,253' : '3,4,9';
       const p = this.toScreen(0, 0);
       const fl = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(W, H) * (0.2 + k));
       fl.addColorStop(0, `rgba(${c},${k})`);

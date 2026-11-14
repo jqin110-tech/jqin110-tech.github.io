@@ -10,6 +10,7 @@
   --star: #f0ece4;
   --dim: #9a9fb2;
   --dust: #e8b86b;
+  --dust-rgb: 232, 184, 107;
   --dust-2: #f3cf8f;
   --ice: #9fc4ff;
   --focus: #9fc4ff;
@@ -149,7 +150,7 @@ kbd {
   padding: 0 18px;
   border-color: var(--hair-2);
   background: var(--glass-2);
-  box-shadow: 0 0 0 6px rgba(232, 184, 107, 0.06), 0 8px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 6px rgba(var(--dust-rgb), 0.06), 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 .pill:active,
 .btn:active {
@@ -173,7 +174,7 @@ kbd {
 }
 .btn-primary:hover {
   background: var(--dust-2);
-  box-shadow: 0 0 0 8px rgba(232, 184, 107, 0.12), 0 0 40px rgba(232, 184, 107, 0.35);
+  box-shadow: 0 0 0 8px rgba(var(--dust-rgb), 0.12), 0 0 40px rgba(var(--dust-rgb), 0.35);
 }
 .btn-ghost {
   background: transparent;
@@ -399,7 +400,7 @@ li.on .tick {
   background: var(--dust);
   border-color: var(--dust);
   color: var(--void);
-  box-shadow: 0 0 10px rgba(232, 184, 107, 0.5);
+  box-shadow: 0 0 10px rgba(var(--dust-rgb), 0.5);
 }
 
 /* landing prompt */
@@ -414,7 +415,7 @@ li.on .tick {
   gap: 12px;
   padding: 10px 12px 10px 18px;
   border-radius: 999px;
-  border: 1px solid rgba(232, 184, 107, 0.5);
+  border: 1px solid rgba(var(--dust-rgb), 0.5);
   background: var(--glass-2);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -436,7 +437,7 @@ li.on .tick {
 }
 .land:hover {
   transform: scale(1.08);
-  box-shadow: 0 0 0 8px rgba(232, 184, 107, 0.08), 0 0 30px rgba(232, 184, 107, 0.25);
+  box-shadow: 0 0 0 8px rgba(var(--dust-rgb), 0.08), 0 0 30px rgba(var(--dust-rgb), 0.25);
 }
 
 .toast {
@@ -498,7 +499,7 @@ li.on .tick {
   color: var(--star);
 }
 .planet-pill[aria-current] {
-  border-color: rgba(232, 184, 107, 0.6);
+  border-color: rgba(var(--dust-rgb), 0.6);
 }
 .dot {
   width: 7px;
@@ -1310,31 +1311,26 @@ body {
 :root.other-side dialog#room {
   box-shadow: 0 30px 80px rgba(120, 90, 110, 0.18), 0 2px 8px rgba(120, 90, 110, 0.06);
 }
-/* The galaxy is always night (his choice, 2026-11-14): light mode changes the planet rooms and the resume,
-   so everything floating over the galaxy keeps the dark set of colours. */
+/* The far side of the hole is a white dimension. Everything floating over the galaxy is drawn in indigo ink on pearl glass
+   there, with violet as the accent, so it belongs to that sky and not to the paper of the resume. */
 :root.other-side .game-view {
-  --void: #030409;
-  --glass: rgba(14, 16, 26, 0.62);
-  --glass-2: rgba(22, 25, 40, 0.86);
-  --glass-hud: rgba(14, 16, 26, 0.78);
-  --hair: rgba(232, 226, 210, 0.14);
-  --hair-2: rgba(232, 226, 210, 0.28);
-  --star: #f0ece4;
-  --dim: #9a9fb2;
-  --dust: #e8b86b;
-  --dust-2: #f3cf8f;
-  --focus: #9fc4ff;
-  --panel: rgba(10, 12, 20, 0.92);
-  --panel-solid: rgb(10, 12, 20);
-  --on-dust: #120d04;
-  --veil: 3, 4, 9;
-  --c-orange: #ffb070;
-  --c-green: #8fe0bb;
-  --c-blue: #7fb6ff;
-  --c-violet: #b9a8ff;
-  --c-rose: #ff9aa6;
-  --c-tan: #f0d9a0;
-  color-scheme: dark;
+  --void: #e9ebf8;
+  --glass: rgba(250, 250, 255, 0.62);
+  --glass-2: rgba(252, 252, 255, 0.92);
+  --glass-hud: rgba(250, 250, 255, 0.8);
+  --hair: rgba(64, 56, 150, 0.16);
+  --hair-2: rgba(64, 56, 150, 0.32);
+  --star: #1c1a3a;
+  --dim: #64648c;
+  --dust: #5e4cc6;
+  --dust-rgb: 94, 76, 198;
+  --dust-2: #7a68de;
+  --focus: #5e4cc6;
+  --panel: rgba(250, 250, 255, 0.92);
+  --panel-solid: rgb(250, 250, 255);
+  --on-dust: #ffffff;
+  --veil: 233, 235, 248;
+  color-scheme: light;
   color: var(--star);
 }
 
@@ -1689,7 +1685,7 @@ body.at-title #world {
   translate: -50% -50%;
   border-radius: 50%;
   background: var(--star);
-  box-shadow: 0 0 0 5px rgba(232, 184, 107, 0.25);
+  box-shadow: 0 0 0 5px rgba(var(--dust-rgb), 0.25);
 }
 .degree-labels {
   display: flex;
@@ -2145,7 +2141,7 @@ body.at-title #world {
 .title-actions .btn-primary:hover {
   padding: 0 32px;
   background: var(--star);
-  box-shadow: 0 0 0 8px rgba(var(--veil), 0.2), 0 0 44px rgba(232, 184, 107, 0.4);
+  box-shadow: 0 0 0 8px rgba(var(--veil), 0.2), 0 0 44px rgba(var(--dust-rgb), 0.4);
 }
 .title-link {
   color: var(--dim);
@@ -4369,8 +4365,8 @@ dialog#room.museum::backdrop {
     justify-items: center;
     gap: 4px;
     text-align: center;
-    border-color: rgba(232, 184, 107, 0.7);
-    box-shadow: 0 0 0 7px rgba(232, 184, 107, 0.07), 0 8px 26px rgba(0, 0, 0, 0.45);
+    border-color: rgba(var(--dust-rgb), 0.7);
+    box-shadow: 0 0 0 7px rgba(var(--dust-rgb), 0.07), 0 8px 26px rgba(0, 0, 0, 0.45);
   }
   .game-view .land:active {
     transform: scale(0.94);
