@@ -60,7 +60,7 @@ export function roomBody(z: Zone): string {
           <div><dt>Land</dt><dd><kbd>E</kbd> when close</dd></div>
           <div><dt>Map</dt><dd><kbd>M</kbd></dd></div>
           <div><dt>Light mode</dt><dd>Fly into the black hole, or <kbd>L</kbd></dd></div>
-          <div><dt>Touch</dt><dd>Hold to fly, tap a planet to land</dd></div>
+          <div><dt>Touch</dt><dd>Use the stick to fly, tap a planet to land</dd></div>
           <div><dt>Resume</dt><dd>Scroll down, or <kbd>R</kbd></dd></div>
         </dl>`;
     case 'campus': {

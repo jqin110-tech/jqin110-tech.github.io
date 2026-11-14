@@ -11,7 +11,8 @@ const HORIZON_R = 44; // cross this and you change dimension
 const FLIP_TIME = 1.4;
 const BANG_TIME = 9; // seconds from the first click to a galaxy you can fly in (4.5 in v46 to v57); a click fast-forwards it
 const BANG_SKIP = 6; // how much faster the opening runs once someone clicks to skip ahead
-const PLANETS_AT = 0.6; // fraction of the opening that passes before the planets start to form
+const PLANETS_AT = 0.55; // fraction of the opening that passes before the planet seeds start to grow
+const SEED = 0.07; // how big a planet's seed is before it grows, as a share of the finished planet
 const smooth = (a: number, b: number, x: number) => {
   const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return u * u * (3 - 2 * u);
@@ -29,17 +30,17 @@ const EPOCHS: [number, string, string][] = [
 /** Blackbody-ish cooling from white-hot to a dull red: u = 0 is hottest. */
 const COOL: [number, number, number][] = [
   [255, 253, 248],
-  [255, 232, 170],
-  [255, 156, 64],
-  [226, 58, 30],
-  [110, 8, 18],
+  [255, 236, 224],
+  [255, 192, 196],
+  [206, 132, 190],
+  [124, 104, 214],
 ];
 const COOL_LIGHT: [number, number, number][] = [
   [255, 255, 255],
-  [255, 238, 204],
-  [250, 204, 172],
-  [238, 176, 172],
-  [236, 170, 176],
+  [255, 236, 224],
+  [248, 204, 214],
+  [226, 184, 226],
+  [196, 180, 236],
 ];
 const cool = (u: number, light: boolean) => {
   const stops = light ? COOL_LIGHT : COOL;
@@ -88,7 +89,6 @@ export class Game {
   private coarse = matchMedia('(pointer: coarse)').matches;
   private tapFrom: { x: number; y: number } | null = null; // where a touch began, until it lifts
   private stick = { x: 0, y: 0 }; // the on-screen joystick on phones, each axis -1 to 1
-  private mottle: HTMLCanvasElement | null = null;
   private flip: { t: number; switched: boolean; angle: number } | null = null;
   private bg: { x: number; y: number; s: number; a: number; p: number; layer: number }[] = [];
 
@@ -251,33 +251,44 @@ export class Game {
     this.ev.onReady();
   }
   /**
-   * Where a planet is drawn right now. Planets come late: once the disc exists, each one gathers
-   * out of it near its own orbit, laps the black hole (inner orbits faster, roughly Keplerian),
-   * then slows and locks into its place on the golden spiral.
+   * Where a planet is drawn right now. Nothing pops into being: each planet starts as a glowing seed
+   * thrown out of the fireball with the rest of the matter. The seeds drift around the centre
+   * (inner ones a little quicker), then grow into planets by sweeping up gas once the disc has formed,
+   * and ease to a stop on the golden spiral.
    */
   private zpos(z: Zone, i: number) {
-    if (this.phase === 'live') return { x: z.x, y: z.y, e: 1, r: 0, a: 0, w: 0, hot: 0 };
-    if (this.phase === 'void') return { x: 0, y: 0, e: 0, r: 0, a: 0, w: 0, hot: 0 };
-    const k = this.planetK();
-    if (k <= 0) return { x: 0, y: 0, e: 0, r: 0, a: 0, w: 0, hot: 0 };
-    // each planet accretes out of the disc: it grows from a speck and drifts out a little as it gathers mass
-    const e = ease((k - i * 0.025) / 0.4);
+    if (this.phase === 'live') return { x: z.x, y: z.y, e: 1, r: 0, a: 0, w: 0, hot: 0, grow: 1 };
+    if (this.phase === 'void') return { x: 0, y: 0, e: 0, r: 0, a: 0, w: 0, hot: 0, grow: 0 };
+    const k = this.bangT / BANG_TIME;
+    const grow = smooth(i * 0.03, 0.72 + i * 0.03, this.planetK()); // 0 a seed, 1 a finished planet
+    // the seed appears inside the fireball and rides out with the rest of the matter
+    const e = smooth(0.02, 0.07, k) * (SEED + (1 - SEED) * grow);
     const rf = Math.hypot(z.x, z.y);
     const af = Math.atan2(z.y, z.x);
-    const r = rf * (0.84 + 0.16 * ease(k / 0.8));
-    const turns = 1.15 * Math.pow(zones[0] ? Math.hypot(zones[0].x, zones[0].y) / rf : 1, 0.75);
-    const u = Math.min(1, Math.max(0, k / 0.92));
-    // planets are born spread by the golden angle (≈137.5°), then each laps at its own speed
-    const lag = (turns * Math.PI * 2 + i * GOLDEN_ANGLE) * (1 - u) * (1 - u);
-    const a = af - lag;
-    const w = turns * Math.PI * 4 * (1 - u); // angular speed, for the motion trail
-    const hot = Math.exp(-k * 5); // white-hot at birth, cooling into its own colours
-    return { x: Math.cos(a) * r, y: Math.sin(a) * r, e, r, a, w, hot };
+    const out = 4.4 + (i % 3) * 0.5;
+    const r = (rf * (1 - Math.exp(-k * out))) / (1 - Math.exp(-out));
+    // a slow drift around the centre, inner orbits a little quicker; it eases to a stop on the spiral
+    // (the seeds keep the same spread around the centre as the finished planets, so they never bunch up)
+    const rmin = Math.min(...zones.map((q) => Math.hypot(q.x, q.y)));
+    const turn = 1.25 + 0.45 * Math.pow(rmin / rf, 0.6); // radians in total: about a quarter turn over the whole opening
+    const u = Math.min(1, Math.max(0, k / 0.96));
+    const a = af - turn * (1 - u) * (1 - u);
+    const w = turn * 2 * (1 - u); // angular speed, for the motion trail
+    // a seed is a glowing ember: bright in the fireball, dimmer in the dark, then it cools into its own colours as it grows
+    const hot = (0.55 + 0.45 * (1 - smooth(0.1, 0.32, k))) * (1 - smooth(0.25, 0.95, grow));
+    return { x: Math.cos(a) * r, y: Math.sin(a) * r, e, r, a, w, hot, grow };
   }
   /** Where the waiting point sits on the title screen: centred on big screens, clear of the title text on small ones. */
   private singularity() {
     const { W, H } = this;
     return { cx: H < 520 ? W * 0.82 : W / 2, cy: H < 520 ? H * 0.3 : W < 700 ? H * 0.2 : H / 2 };
+  }
+  /** Screen offset during the opening: the galaxy's centre starts on the title-screen point and eases to its real place. */
+  private bangDrift(bk: number) {
+    const c = this.toScreen(0, 0);
+    const o = this.singularity();
+    const m = 1 - smooth(0, 0.22, bk);
+    return { x: (o.cx - c.x) * m, y: (o.cy - c.y) * m };
   }
   /** How far along planet formation is, 0 to 1. Nothing forms until the disc has gathered. */
   private planetK() {
@@ -289,7 +300,73 @@ export class Game {
    * as it settles into the galaxy's arms.
    */
   private debris: { a: number; rf: number; s: number; d: number }[] = [];
+  private puffs: { a: number; rf: number; s: number; d: number; hue: number }[] = [];
+  private puffTex: HTMLCanvasElement | null = null;
+  private puffTint: HTMLCanvasElement[] = [];
+  /** The gas itself: big soft clouds that glow white-hot, dim to violet in the dark, then take the colours of the arms. */
+  private drawGas(g: CanvasRenderingContext2D, k: number) {
+    const fade = smooth(0.004, 0.03, k) * (1 - smooth(0.56, 0.86, k));
+    if (fade <= 0) return;
+    if (!this.puffTex) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const x = c.getContext('2d')!;
+      const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(255,255,255,1)');
+      gr.addColorStop(0.35, 'rgba(255,255,255,0.42)');
+      gr.addColorStop(0.7, 'rgba(255,255,255,0.1)');
+      gr.addColorStop(1, 'rgba(255,255,255,0)');
+      x.fillStyle = gr;
+      x.fillRect(0, 0, 64, 64);
+      this.puffTex = c;
+      for (let h = 0; h < 3; h++) {
+        const t = document.createElement('canvas');
+        t.width = t.height = 64;
+        this.puffTint.push(t);
+      }
+      let seed = 97;
+      const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      for (let i = 0; i < 84; i++) {
+        const arm = Math.floor(rnd() * 4);
+        const rf = 70 + Math.pow(rnd(), 0.8) * (GALAXY_R - 110);
+        const a = rnd() < 0.75 ? (arm / 4) * Math.PI * 2 + Math.log(rf / 120) / Math.tan(0.32) + (rnd() - 0.5) * 0.5 : rnd() * Math.PI * 2;
+        this.puffs.push({ a, rf, s: 70 + rnd() * 130, d: 0.7 + rnd() * 0.6, hue: i % 3 });
+      }
+    }
+    // one colour per frame for each of three families: hot gas is the same white everywhere, cold gas differs
+    const born = smooth(0.34, 0.56, k);
+    const T = Math.exp(-k * 9);
+    const arms = this.light ? ['168,178,238', '198,176,238', '238,186,216'] : ['104,138,255', '160,112,255', '226,120,196'];
+    for (let h = 0; h < 3; h++) {
+      const hot = cool(Math.min(1, (1 - T) * 1.05), this.light).split(',').map(Number);
+      const arm = arms[h].split(',').map(Number);
+      const col = hot.map((v, j) => Math.round(v + (arm[j] - v) * born));
+      const x = this.puffTint[h].getContext('2d')!;
+      x.globalCompositeOperation = 'copy';
+      x.drawImage(this.puffTex, 0, 0);
+      x.globalCompositeOperation = 'source-in';
+      x.fillStyle = `rgb(${col.join(',')})`;
+      x.fillRect(0, 0, 64, 64);
+    }
+    const prevOp = g.globalCompositeOperation;
+    const prevA = g.globalAlpha;
+    if (!this.light) g.globalCompositeOperation = 'lighter';
+    // bright while hot, a faint haze through the dark ages, lit again by the first stars
+    const level = (this.light ? 0.22 : 0.17) * (0.3 + 0.7 * T + 0.45 * born) * fade;
+    for (const p of this.puffs) {
+      const ex = 1 - Math.exp(-k * 5.5 * p.d);
+      const r = p.rf * ex;
+      const swirl = 1.1 * Math.pow(400 / Math.max(80, p.rf), 0.6);
+      const a = p.a - (1 - k) * 0.5 + (k * k - 1) * swirl;
+      const sz = p.s * (0.3 + 0.7 * ex);
+      g.globalAlpha = level;
+      g.drawImage(this.puffTint[p.hue], Math.cos(a) * r - sz, Math.sin(a) * r - sz, sz * 2, sz * 2);
+    }
+    g.globalAlpha = prevA;
+    g.globalCompositeOperation = prevOp;
+  }
   private drawDebris(g: CanvasRenderingContext2D, k: number) {
+    this.drawGas(g, k);
     if (!this.debris.length) {
       let seed = 41;
       const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
@@ -301,8 +378,8 @@ export class Game {
         this.debris.push({ a, rf, s: 1.5 + rnd() * 4, d: 0.6 + rnd() * 0.8 });
       }
     }
-    // hidden inside the glow at first, dim through the dark ages, gone once the disc has gathered it up
-    const fade = smooth(0.1, 0.26, k) * (1 - smooth(0.52, 0.8, k));
+    // there from the first instant, dim through the dark ages, gone once the disc has gathered it up
+    const fade = smooth(0.004, 0.03, k) * (1 - smooth(0.52, 0.8, k));
     if (fade <= 0) return;
     const born = smooth(0.36, 0.5, k); // the first stars light the gas back up
     const prev = g.globalCompositeOperation;
@@ -312,18 +389,30 @@ export class Game {
       const ex = 1 - Math.exp(-k * 5.5 * p.d);
       const r = p.rf * ex;
       // conserve angular momentum: the cloud spins up as it organises, inner parts faster
-      const spin = k * k * 2.4 * Math.pow(400 / Math.max(80, p.rf), 0.6);
-      const a = p.a - (1 - k) * 1.2 + spin - 2.4 * Math.pow(400 / Math.max(80, p.rf), 0.6);
-      const x = Math.cos(a) * r;
-      const y = Math.sin(a) * r;
+      const swirl = 1.1 * Math.pow(400 / Math.max(80, p.rf), 0.6);
+      const a = p.a - (1 - k) * 0.5 + (k * k - 1) * swirl;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+      const x = ca * r;
+      const y = sa * r;
       // cools the way hot matter really does, white to yellow to orange to red; then star birth turns it blue-white
       const T = Math.exp(-k * 7 * p.d);
       const col = born > 0.5
         ? this.light ? '170,160,230' : '176,208,255'
         : cool(Math.min(0.74, 1 - T), this.light); // never cooler than a dull red-orange, so the gas stays visible
       const al = (0.5 + 0.34 * T + 0.1 * born) * fade;
-      g.fillStyle = `rgba(${col},${al})`;
       const sz = p.s * (1 + T * 1.5);
+      // while it is still flying fast, each piece is drawn as a streak pointing back at where it came from
+      const tail = Math.min(26, p.rf * (1 - ex) * 0.2 * T);
+      if (tail > sz * 1.5) {
+        g.strokeStyle = `rgba(${col},${al * 0.36})`;
+        g.lineWidth = sz * 0.5;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x - ca * tail, y - sa * tail);
+        g.stroke();
+      }
+      g.fillStyle = `rgba(${col},${al})`;
       g.fillRect(x - sz / 2, y - sz / 2, sz, sz);
     }
     g.globalCompositeOperation = prev;
@@ -727,15 +816,17 @@ export class Game {
       let lit = 1;
       if (this.phase === 'bang') {
         // the first stars switch on one at a time, each with a brief flare
-        const at = 0.35 + (st.p / 6) * 0.38;
-        const since = this.bangT / BANG_TIME - at;
-        if (since <= 0) continue;
-        lit = Math.min(1, since / 0.03) * (1 + 1.6 * Math.exp(-since * 45));
+        const bkS = this.bangT / BANG_TIME;
+        const at = 0.33 + (st.p / 6) * 0.38;
+        const since = bkS - at;
+        // the old sky is lost in the glare of the fireball; the new one switches on a star at a time
+        lit = since > 0 ? Math.min(1, since / 0.03) * (1 + 1.6 * Math.exp(-since * 45)) : 1 - smooth(0, 0.035, bkS);
+        if (lit <= 0.01) continue;
       }
       g.fillStyle = `rgba(${P.star},${Math.min(1, st.a * tw * lit)})`;
       g.fillRect(x, y, st.s, st.s);
     }
-    if (this.shoot && !this.reducedMotion) {
+    if (this.shoot && !this.reducedMotion && this.phase === 'live') {
       const sh = this.shoot;
       const a = Math.min(1, sh.life / 0.25) * 0.8;
       const tail = g.createLinearGradient(sh.x, sh.y, sh.x - sh.vx * 0.14, sh.y - sh.vy * 0.14);
@@ -774,6 +865,9 @@ export class Game {
     const bk = live ? 1 : this.bangT / BANG_TIME;
 
     g.save();
+    // the bang goes off exactly where the point was waiting on the title screen, and everything drifts to the middle together
+    const drift = live ? { x: 0, y: 0 } : this.bangDrift(bk);
+    g.translate(drift.x, drift.y);
     g.translate(W / 2, H / 2);
     g.scale(zoom, zoom);
     g.translate(-this.cam.x, -this.cam.y);
@@ -791,8 +885,8 @@ export class Game {
     if (!live) {
       // the disc gathers out of the gas more or less where it is, winding up as it settles
       g.globalAlpha = ge;
-      g.rotate((1 - ge) * -1.5);
-      g.scale(0.8 + ge * 0.2, 0.8 + ge * 0.2);
+      g.rotate((1 - ge) * -0.5);
+      g.scale(0.86 + ge * 0.14, 0.86 + ge * 0.14);
     }
     g.drawImage(this.light && this.galaxyLight ? this.galaxyLight : this.galaxy, -TEX_WORLD / 2, -TEX_WORLD / 2, TEX_WORLD, TEX_WORLD);
     g.restore();
@@ -867,17 +961,17 @@ export class Game {
       for (const [i, z] of zones.entries()) {
         const zp = this.zpos(z, i);
         if (zp.e <= 0) continue;
-        g.strokeStyle = `${P.gold}${0.16 * zp.e * (1 - settle)})`;
+        g.strokeStyle = `${P.gold}${0.14 * zp.grow * (1 - settle)})`;
         g.lineWidth = 1 / zoom;
         g.beginPath();
         g.arc(0, 0, zp.r, 0, Math.PI * 2);
         g.stroke();
-        // a comet-like trail along the orbit, longer while it moves fast
-        const len = Math.min(1.6, zp.w * 0.12);
-        if (len > 0.02) {
+        // a faint trail along the orbit while it is still drifting
+        const len = Math.min(0.9, zp.w * 0.16);
+        if (len > 0.02 && zp.grow > 0.02) {
           for (let s2 = 0; s2 < 6; s2++) {
-            g.strokeStyle = `rgba(${P.star},${(0.32 * (6 - s2)) / 6 * zp.e})`;
-            g.lineWidth = (z.look.r * 0.5 * (6 - s2)) / 6;
+            g.strokeStyle = `rgba(${P.star},${(0.26 * (6 - s2)) / 6 * zp.grow})`;
+            g.lineWidth = (z.look.r * 0.5 * (0.12 + zp.e * 0.88) * (6 - s2)) / 6;
             g.beginPath();
             g.arc(0, 0, zp.r, zp.a - (len * (s2 + 1)) / 6, zp.a - (len * s2) / 6);
             g.stroke();
@@ -915,12 +1009,12 @@ export class Game {
       }
       drawPlanet(g, z.look, Math.atan2(-z.y, -z.x), t, h);
       if (zp.hot > 0.02) {
-        // a molten ember: a glow that fades as the planet cools
-        const R = z.look.r * (1.2 + zp.hot * 1.6);
+        // a molten ember: a glow that fades as the planet cools. A seed is tiny, so its glow reaches well past it.
+        const R = z.look.r * (1.2 + zp.hot * 1.6) * (1 + (1 - zp.grow) * 1.2);
         const gl = g.createRadialGradient(0, 0, 0, 0, 0, R);
-        const c = this.light ? '255,226,190' : '255,248,236';
+        const c = this.light ? '168,150,230' : '255,248,236';
         gl.addColorStop(0, `rgba(${c},${Math.min(1, zp.hot * 1.15)})`);
-        gl.addColorStop(0.45, `rgba(${this.light ? '250,190,150' : '255,200,140'},${zp.hot * 0.55})`);
+        gl.addColorStop(0.45, `rgba(${this.light ? '196,184,240' : '255,226,196'},${zp.hot * 0.42})`);
         gl.addColorStop(1, `rgba(${c},0)`);
         const prev = g.globalCompositeOperation;
         if (!this.light) g.globalCompositeOperation = 'lighter';
@@ -928,6 +1022,23 @@ export class Game {
         g.beginPath();
         g.arc(0, 0, R, 0, Math.PI * 2);
         g.fill();
+        g.globalCompositeOperation = prev;
+      }
+      if (!live && zp.grow > 0.001 && zp.grow < 0.999) {
+        // what the planet is made of: gas spiralling in from the disc around it
+        const inv = 1 / (0.12 + zp.e * 0.88);
+        const reach = z.look.r * 4.6;
+        const prev = g.globalCompositeOperation;
+        if (!this.light) g.globalCompositeOperation = 'lighter';
+        for (let j = 0; j < 18; j++) {
+          const ph = (zp.grow * 2.6 + j / 18) % 1; // 0 far out, 1 swallowed
+          const d = (z.look.r * 0.4 + reach * Math.pow(1 - ph, 1.4)) * inv;
+          const an = j * GOLDEN_ANGLE + ph * 4.2;
+          const al = Math.sin(ph * Math.PI) * 0.75 * Math.sin(zp.grow * Math.PI);
+          const sz = (1.6 + (j % 3)) * 1.5 * inv;
+          g.fillStyle = `rgba(${this.light ? '150,140,210' : '190,214,255'},${al})`;
+          g.fillRect(Math.cos(an) * d - sz / 2, Math.sin(an) * d - sz / 2, sz, sz);
+        }
         g.globalCompositeOperation = prev;
       }
       g.restore();
@@ -1124,42 +1235,42 @@ export class Game {
     g.fillStyle = v;
     g.fillRect(0, 0, W, H);
 
-    // the big bang. There is no blast wave, because there is nothing outside it to blast into:
-    // all of space is filled with a white-hot glow that cools through yellow and red until it turns transparent.
+    // the big bang: a fireball of light that swells out of the waiting point, thins and cools as it grows,
+    // and leaves the gas and the planet seeds flying behind it. No blast-wave ring: there is nothing outside to hit.
     if (!live) {
-      const c = this.toScreen(0, 0);
-      const big = Math.max(W, H);
-      if (bk < 0.045) {
-        // inflation: from a point to everything, almost at once
-        const u = bk / 0.045;
-        const R = big * 1.7 * u * u + 2;
-        const o = this.singularity(); // it bursts out of the very point that was waiting on the title screen
-        const fl = g.createRadialGradient(o.cx, o.cy, 0, o.cx, o.cy, R);
-        fl.addColorStop(0, `rgba(${cool(0, this.light)},1)`);
-        fl.addColorStop(0.72, `rgba(${cool(0, this.light)},1)`);
-        fl.addColorStop(1, `rgba(${cool(0, this.light)},0)`);
-        g.fillStyle = fl;
+      const big = Math.min(Math.max(W, H), Math.min(W, H) * 1.6);
+      if (bk < 0.4) {
+        const c = this.toScreen(0, 0);
+        const fx = c.x + drift.x;
+        const fy = c.y + drift.y;
+        const u = bk / 0.4; // 0 the instant of the bang, 1 faded away
+        const R = 5 + (big * 1.0 * (1 - Math.exp(-u * 3.6))) / (1 - Math.exp(-3.6));
+        const A = Math.pow(1 - u, 2.6);
+        const tint = smooth(0.12, 0.7, u);
+        const mixc = (a: number[], b: number[]) => a.map((v, j) => Math.round(v + (b[j] - v) * tint)).join(',');
+        const far = this.light ? [214, 200, 240] : [146, 138, 255];
+        // white-hot at the heart, a thin blue-violet halo at the edge: light, not smoke
+        const ball = g.createRadialGradient(fx, fy, 0, fx, fy, R);
+        ball.addColorStop(0, `rgba(${mixc([255, 252, 246], far)},${A})`);
+        ball.addColorStop(0.28, `rgba(${mixc([246, 242, 255], far)},${A * 0.5})`);
+        ball.addColorStop(0.6, `rgba(${this.light ? '214,200,240' : '150,172,255'},${A * 0.16})`);
+        ball.addColorStop(1, `rgba(${this.light ? '214,200,240' : '120,140,255'},0)`);
+        const prev = g.globalCompositeOperation;
+        if (!this.light) g.globalCompositeOperation = 'lighter';
+        g.fillStyle = ball;
         g.fillRect(0, 0, W, H);
-      } else if (bk < 0.36) {
-        const u = (bk - 0.045) / 0.3; // 0 white-hot, 1 cooled
-        const al = 1 - smooth(0.55, 1, u);
-        const glow = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, big * 0.8);
-        glow.addColorStop(0, `rgba(${cool(u * 0.92, this.light)},${al})`);
-        glow.addColorStop(1, `rgba(${cool(u, this.light)},${al * 0.94})`);
-        g.fillStyle = glow;
-        g.fillRect(0, 0, W, H);
-        // faint hotter and cooler patches, the seeds of everything that forms later; they stretch as space does
-        const m = (this.mottle ??= buildMottle());
-        const ma = al * smooth(0.08, 0.45, u) * (this.light ? 0.5 : 0.8);
-        if (ma > 0.01) {
-          const sz = big * (1.25 + u * 0.55);
-          g.save();
-          g.globalAlpha = ma;
-          g.imageSmoothingEnabled = true;
-          g.imageSmoothingQuality = 'high';
-          g.drawImage(m, c.x - sz / 2, c.y - sz / 2, sz, sz);
-          g.restore();
+        // the white-hot heart of it, brightest in the first moments
+        const hk = 1 - smooth(0, 0.38, u);
+        if (hk > 0.01) {
+          const hr = 12 + R * 0.1;
+          const heart = g.createRadialGradient(fx, fy, 0, fx, fy, hr);
+          heart.addColorStop(0, `rgba(255,255,255,${hk})`);
+          heart.addColorStop(0.35, `rgba(255,250,240,${hk * 0.5})`);
+          heart.addColorStop(1, 'rgba(255,246,232,0)');
+          g.fillStyle = heart;
+          g.fillRect(fx - hr, fy - hr, hr * 2, hr * 2);
         }
+        g.globalCompositeOperation = prev;
       }
       // a small clock: where in the real story this moment sits
       let ei = 0;
@@ -1167,9 +1278,9 @@ export class Game {
       const [e0, when, what] = EPOCHS[ei];
       const e1 = ei + 1 < EPOCHS.length ? EPOCHS[ei + 1][0] : 1.01;
       const ea = Math.min(smooth(e0, e0 + 0.025, bk), 1 - smooth(e1 - 0.025, e1, bk));
-      const onGlow = bk < 0.2 && !this.light; // dark type while the screen is bright
-      const ink = onGlow ? '40,30,24' : P.text;
-      const y = H - (W < 700 ? 148 : 124);
+      const onGlow = false; // the screen is never washed out any more, so the type keeps its usual colour
+      const ink = P.text;
+      const y = H - (H < 520 ? 72 : W < 700 ? 148 : 124);
       g.textAlign = 'center';
       g.textBaseline = 'alphabetic';
       g.font = '500 11px "IBM Plex Mono", monospace';
@@ -1204,28 +1315,4 @@ function spaced(g: CanvasRenderingContext2D, text: string, cx: number, y: number
     g.fillText(text, cx + track / 2, y);
     ctx.letterSpacing = '0px';
   } else g.fillText(text, cx, y);
-}
-
-
-/** A fine blotchy texture: slightly hotter and cooler patches in the early glow. */
-function buildMottle() {
-  const N = 256;
-  const c = document.createElement('canvas');
-  c.width = c.height = N;
-  const g = c.getContext('2d')!;
-  let seed = 7;
-  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  for (let i = 0; i < 1500; i++) {
-    const x = rnd() * N;
-    const y = rnd() * N;
-    const r = 2 + rnd() * rnd() * 9;
-    const hot = rnd() < 0.5;
-    const a = 0.08 + rnd() * 0.2;
-    const gr = g.createRadialGradient(x, y, 0, x, y, r);
-    gr.addColorStop(0, hot ? `rgba(255,250,235,${a})` : `rgba(150,10,24,${a * 1.25})`);
-    gr.addColorStop(1, hot ? 'rgba(255,250,235,0)' : 'rgba(150,10,24,0)');
-    g.fillStyle = gr;
-    g.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-  return c;
 }
