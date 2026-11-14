@@ -323,18 +323,25 @@ export class Game {
     const prevA = g.globalAlpha;
     const col = this.light ? '150,150,235' : '170,200,255';
     const core = this.light ? '120,120,220' : '255,255,255';
-    const band = (c: string, h: number, a: number) => {
-      const gr = g.createLinearGradient(x - half, 0, x + half, 0);
-      gr.addColorStop(0, `rgba(${c},0)`);
-      gr.addColorStop(0.5, `rgba(${c},${Math.min(1, alpha)})`);
+    // a round glow stretched sideways, so it tapers to a point at each end and has no hard edge anywhere
+    const band = (c: string, r: number, a: number) => {
+      g.save();
+      g.translate(x, y);
+      g.scale(half / r, 1);
+      const gr = g.createRadialGradient(0, 0, 0, 0, 0, r);
+      gr.addColorStop(0, `rgba(${c},${Math.min(1, alpha)})`);
+      gr.addColorStop(0.4, `rgba(${c},${Math.min(1, alpha) * 0.35})`);
       gr.addColorStop(1, `rgba(${c},0)`);
       g.globalAlpha = prevA * a;
       g.fillStyle = gr;
-      g.fillRect(x - half, y - h / 2, half * 2, h);
+      g.beginPath();
+      g.arc(0, 0, r, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
     };
-    band(col, thick * 9, 0.14);
-    band(col, thick * 3, 0.4);
-    band(core, thick, 0.9);
+    band(col, thick * 5, 0.35);
+    band(col, thick * 1.8, 0.7);
+    band(core, thick * 0.75, 1);
     g.globalAlpha = prevA;
   }
   /** The first stars: points in the gas that flare on one after another, and the core lighting up at the centre. */
@@ -493,6 +500,9 @@ export class Game {
     if (fade <= 0) return;
     const born = smooth(0.36, 0.5, k); // the first stars light the gas back up
     const near = Math.pow(this.bangZoom(k), 0.8);
+    const zoomNow = this.cam.zoom * this.bangZoom(k);
+    const prevCap = g.lineCap;
+    g.lineCap = 'round';
     const prev = g.globalCompositeOperation;
     if (!this.light) g.globalCompositeOperation = 'lighter';
     for (const p of this.debris) {
@@ -524,8 +534,14 @@ export class Game {
         g.stroke();
       }
       g.fillStyle = `rgba(${col},${al})`;
-      g.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+      if (sz * zoomNow > 1.7) {
+        // big enough to see its shape: a round speck, never a square
+        g.beginPath();
+        g.arc(x, y, sz * 0.56, 0, Math.PI * 2);
+        g.fill();
+      } else g.fillRect(x - sz / 2, y - sz / 2, sz, sz);
     }
+    g.lineCap = prevCap;
     g.globalCompositeOperation = prev;
   }
   /** Autopilot into the black hole. */
@@ -938,10 +954,12 @@ export class Game {
         if (al <= 0.01) continue;
         g.strokeStyle = `rgba(${P.star},${Math.min(1, al)})`;
         g.lineWidth = Math.max(1, st.s * 0.8);
+        g.lineCap = 'round';
         g.beginPath();
         g.moveTo(sing.cx + (x - sing.cx) * (1 - pull), sing.cy + (y - sing.cy) * (1 - pull));
         g.lineTo(sing.cx + (x - sing.cx) * (1 - before) + 0.5, sing.cy + (y - sing.cy) * (1 - before) + 0.5);
         g.stroke();
+        g.lineCap = 'butt';
         continue;
       }
       if (this.phase === 'bang') {
@@ -1217,7 +1235,9 @@ export class Game {
           const al = Math.sin(ph * Math.PI) * 0.75 * Math.sin(zp.grow * Math.PI);
           const sz = (1.6 + (j % 3)) * 1.5 * inv;
           g.fillStyle = `rgba(${this.light ? '150,140,210' : '190,214,255'},${al})`;
-          g.fillRect(Math.cos(an) * d - sz / 2, Math.sin(an) * d - sz / 2, sz, sz);
+          g.beginPath();
+          g.arc(Math.cos(an) * d, Math.sin(an) * d, sz * 0.56, 0, Math.PI * 2);
+          g.fill();
         }
         g.globalCompositeOperation = prev;
       }
