@@ -96,7 +96,8 @@ export class Game {
   private H = 600;
   private galaxy: HTMLCanvasElement;
   private galaxyLight: HTMLCanvasElement | null = null;
-  private light = false;
+  private readonly light = false; // the galaxy is always drawn dark (his choice); kept so the pastel palette is easy to bring back
+  private siteLight = false; // whether the rest of the site (rooms, resume) is in light mode
   private coreTex: HTMLCanvasElement;
   private coreTexLight: HTMLCanvasElement | null = null;
   private coreSize: number;
@@ -229,12 +230,11 @@ export class Game {
     this.auto = { x: z.x + side * (z.look.r + 70), y: z.y, zone: z };
   }
   get isLight() {
-    return this.light;
+    return this.siteLight;
   }
   /** Set the dimension without the warp animation (used on load). */
   setLight(on: boolean) {
-    this.light = on;
-    if (on) this.ensureLightGalaxy();
+    this.siteLight = on;
     this.render();
   }
   get isLive() {
@@ -567,11 +567,13 @@ export class Game {
   // ---------- sizing ----------
   private exploreZoom() {
     // pulled back far enough that the next planet and the route are usually in view
+    // a phone held sideways is short, so it pulls back further to show more of the sky around you
+    if (this.H < 520) return 0.46;
     return Math.max(0.62, Math.min(1.02, Math.min(this.W, this.H) / 840));
   }
   /** Device pixels per sprite pixel: always a whole number, so the astronaut's pixels stay square. */
   private astroPx() {
-    const px = Math.max(2, Math.round(((this.W < 700 ? 46 : 66) * this.dpr) / ASTRO.h));
+    const px = Math.max(2, Math.round(((this.H < 520 ? 36 : this.W < 700 ? 46 : 66) * this.dpr) / ASTRO.h));
     return this.overview && px > 2 ? px - 1 : px; // a little smaller on the map, so it covers less of it
   }
   private overviewZoom() {
@@ -636,6 +638,8 @@ export class Game {
     });
     c.addEventListener('pointerdown', (e) => {
       if (!this.running) return;
+      // only the main button (or a touch) flies: a right or middle click opens its menu and never reports a release
+      if (e.button !== 0) return;
       if (this.phase === 'bang') {
         this.bangRate = BANG_SKIP; // impatient? the rest plays in fast-forward
         return;
@@ -657,10 +661,16 @@ export class Game {
         this.diveIntoCore();
         return;
       }
-      c.setPointerCapture(e.pointerId);
-      this.pointer = { x: p.x, y: p.y, held: true, moved: false, downAt: performance.now() };
-      this.auto = null;
+      // a click on open space: fly there. Nothing is steered by holding the button down.
+      this.auto = { x: w.x, y: w.y, zone: null };
     });
+    // if the browser takes the pointer away (a menu, another window), nothing may stay pressed
+    const letGo = () => {
+      this.pointer.held = false;
+      this.tapFrom = null;
+    };
+    c.addEventListener('contextmenu', letGo);
+    window.addEventListener('blur', letGo);
     const up = () => {
       if (this.coarse) {
         const from = this.tapFrom;
@@ -668,18 +678,13 @@ export class Game {
         const tapped = this.pointer.held && from && performance.now() - this.pointer.downAt < 450 && Math.hypot(this.pointer.x - from.x, this.pointer.y - from.y) < 14;
         this.pointer.held = false;
         if (!tapped) return;
-        // a tap: land on the planet under it, dive into the core, or set a waypoint in open space
+        // a tap on a planet lands on it, a tap on the core dives in. A tap on open space does nothing:
+        // on a phone the stick is the only way to fly (his choice), so a stray touch never moves you.
         const z = this.zoneAt(from.x, from.y);
         const w = this.toWorld(from.x, from.y);
         if (z) this.flyTo(z);
         else if (Math.hypot(w.x, w.y) < 70) this.diveIntoCore();
-        else this.auto = { x: w.x, y: w.y, zone: null };
         return;
-      }
-      if (this.pointer.held && performance.now() - this.pointer.downAt < 220) {
-        // a quick click on empty space sets a waypoint
-        const w = this.toWorld(this.pointer.x, this.pointer.y);
-        this.auto = { x: w.x, y: w.y, zone: null };
       }
       this.pointer.held = false;
     };
@@ -760,18 +765,6 @@ export class Game {
       ix = this.stick.x;
       iy = this.stick.y;
     }
-    // holding on empty space steers with a mouse; phones have the joystick instead, so a drag there is free to scroll the page
-    if (!this.coarse && this.pointer.held && performance.now() - this.pointer.downAt > 120) {
-      const w = this.toWorld(this.pointer.x, this.pointer.y);
-      const dx = w.x - s.x;
-      const dy = w.y - s.y;
-      const d = Math.hypot(dx, dy);
-      if (d > 20) {
-        ix = dx / d;
-        iy = dy / d;
-      }
-    }
-
     let thrust = 0;
     if (ix || iy) {
       const m = Math.hypot(ix, iy);
@@ -851,15 +844,15 @@ export class Game {
       }
       if (!f.switched && f.t >= FLIP_TIME / 2) {
         f.switched = true;
-        this.light = !this.light;
+        this.siteLight = !this.siteLight;
         if (this.light) this.ensureLightGalaxy();
-        this.ev.onDimension(this.light);
+        this.ev.onDimension(this.siteLight);
         s.x = Math.cos(f.angle) * 175;
         s.y = Math.sin(f.angle) * 175;
         s.vx = Math.cos(f.angle) * 220;
         s.vy = Math.sin(f.angle) * 220;
         this.noticeAt = -99;
-        this.notice(this.light ? 'You crossed the event horizon. This is light mode.' : 'Back through the horizon. Dark mode restored.');
+        this.notice(this.siteLight ? 'Light mode is on for the planets and the resume. The galaxy stays dark.' : 'Back through the horizon. Dark mode restored.');
       }
       if (f.t >= FLIP_TIME) this.flip = null;
     }
@@ -1308,7 +1301,7 @@ export class Game {
     // the black hole is labelled with what it does: it is the way to the other colour mode
     const core = this.toScreen(0, 0);
     const coreOn = core.x > -40 && core.x < W + 40 && core.y > -40 && core.y < H + 40;
-    const other = this.light ? 'DARK' : 'LIGHT';
+    const other = this.siteLight ? 'DARK' : 'LIGHT';
     if (live && this.showLabels && coreOn && !this.flip) {
       // below the core, unless that would sit under the planet list
       const below = core.y + 150 * zoom + 12;
@@ -1537,7 +1530,7 @@ export class Game {
     // the crossing: a flash in the colour of the dimension you are entering
     if (this.flip && !this.reducedMotion) {
       const k = Math.sin((this.flip.t / FLIP_TIME) * Math.PI);
-      const goingLight = this.flip.switched ? this.light : !this.light;
+      const goingLight = this.flip.switched ? this.siteLight : !this.siteLight;
       const c = goingLight ? '246,241,234' : '3,4,9';
       const p = this.toScreen(0, 0);
       const fl = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(W, H) * (0.2 + k));

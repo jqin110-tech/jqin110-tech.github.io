@@ -1310,6 +1310,33 @@ body {
 :root.other-side dialog#room {
   box-shadow: 0 30px 80px rgba(120, 90, 110, 0.18), 0 2px 8px rgba(120, 90, 110, 0.06);
 }
+/* The galaxy is always night (his choice, 2026-11-14): light mode changes the planet rooms and the resume,
+   so everything floating over the galaxy keeps the dark set of colours. */
+:root.other-side .game-view {
+  --void: #030409;
+  --glass: rgba(14, 16, 26, 0.62);
+  --glass-2: rgba(22, 25, 40, 0.86);
+  --glass-hud: rgba(14, 16, 26, 0.78);
+  --hair: rgba(232, 226, 210, 0.14);
+  --hair-2: rgba(232, 226, 210, 0.28);
+  --star: #f0ece4;
+  --dim: #9a9fb2;
+  --dust: #e8b86b;
+  --dust-2: #f3cf8f;
+  --focus: #9fc4ff;
+  --panel: rgba(10, 12, 20, 0.92);
+  --panel-solid: rgb(10, 12, 20);
+  --on-dust: #120d04;
+  --veil: 3, 4, 9;
+  --c-orange: #ffb070;
+  --c-green: #8fe0bb;
+  --c-blue: #7fb6ff;
+  --c-violet: #b9a8ff;
+  --c-rose: #ff9aa6;
+  --c-tan: #f0d9a0;
+  color-scheme: dark;
+  color: var(--star);
+}
 
 /* ---------- resume on tablets and phones ---------- */
 @media (max-width: 860px) {
@@ -4214,5 +4241,54 @@ dialog#room.museum::backdrop {
   }
   .room-foot {
     padding: 4px 22px;
+  }
+}
+
+/* A phone held sideways: the sky gets the room. Controls shrink and sit under the thumbs:
+   stick bottom left, landing button bottom right. */
+@media (pointer: coarse) and (max-height: 520px) {
+  .hud {
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+  .hud-right {
+    gap: 6px;
+  }
+  .hud .pill {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 10px;
+  }
+  .hud .meter,
+  .checklist summary > .mono:first-child {
+    display: none;
+  }
+  .toast {
+    top: calc(46px + env(safe-area-inset-top));
+    padding: 7px 14px;
+    font-size: 10px;
+  }
+  .travel {
+    padding-top: 2px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+  .travel ol {
+    gap: 6px;
+    padding: 4px;
+  }
+  .travel .planet-pill {
+    min-height: 30px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
+  .land {
+    left: auto;
+    right: calc(22px + env(safe-area-inset-right));
+    bottom: calc(52px + env(safe-area-inset-bottom));
+    translate: none;
+    padding: 9px 10px 9px 16px;
+    font-size: 13px;
+  }
+  .stick {
+    bottom: calc(50px + env(safe-area-inset-bottom));
   }
 }
