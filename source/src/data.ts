@@ -137,8 +137,7 @@ export const resume = {
       dates: 'Nov 2026',
       tagline: 'This site: an explorable galaxy with the full resume below it.',
       stack: ['TypeScript', 'Canvas 2D', 'Vite'],
-      // the code link only exists where the site is served from its own repository
-      links: __HOSTED__ ? [{ label: 'Code on GitHub', url: 'https://github.com/jqin110-tech/jqin110-tech.github.io' }] : undefined,
+      links: [{ label: 'Code on GitHub', url: 'https://github.com/jqin110-tech/jqin110-tech.github.io' }],
       bullets: [
         'Designed and directed an explorable galaxy resume: set the concept, look and interactions, and tested every build across 40+ versions.',
         'Placed sections along a logarithmic (golden) spiral with equal arc-length spacing, derived from r = R₀·φ^(−2θ/π).',

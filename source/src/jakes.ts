@@ -7,7 +7,7 @@ export const jakes = {
   contact: [
     { label: resume.email, url: `mailto:${resume.email}` },
     { label: 'github.com/jqin110-tech', url: 'https://github.com/jqin110-tech' },
-    { label: 'jqin110-tech.github.io/tickerchatter', url: 'https://jqin110-tech.github.io/tickerchatter/' },
+    { label: 'jqin110-tech.github.io', url: 'https://jqin110-tech.github.io/' },
   ],
   education: [{ school: 'University of Waterloo', place: 'Waterloo, ON', degree: 'Honours Mathematics, Co-op', dates: '2026 – Expected Apr. 2031' }],
   projects: [
@@ -47,7 +47,7 @@ export const jakes = {
     },
     {
       name: 'Resume Quest',
-      url: '',
+      url: 'https://jqin110-tech.github.io/',
       stack: 'TypeScript, Canvas 2D, Vite',
       dates: 'Nov. 2026',
       items: [

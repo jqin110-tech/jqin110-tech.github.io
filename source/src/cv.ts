@@ -277,7 +277,7 @@ export function quickResume(): string {
       ${j.projects
         .map(
           (p) => `<div class="jk-sub">
-        <p class="jk-row jk-proj"><span>${p.url ? `<a class="jk-name" href="${esc(p.url)}" target="_blank" rel="noopener"><b>${esc(p.name)}</b></a>` : `<b>${esc(p.name)}</b>`} <span aria-hidden="true">|</span> <i>${esc(p.stack)}</i></span><span>${esc(p.dates)}</span></p>
+        <p class="jk-row jk-proj"><span><a class="jk-name" href="${esc(p.url)}" target="_blank" rel="noopener"><b>${esc(p.name)}</b></a> <span aria-hidden="true">|</span> <i>${esc(p.stack)}</i></span><span>${esc(p.dates)}</span></p>
         ${items(p.items)}
       </div>`,
         )
