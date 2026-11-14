@@ -10,7 +10,8 @@ const PULL_R = 260; // gravity starts tugging here
 const HORIZON_R = 44; // cross this and you change dimension
 const FLIP_TIME = 1.4;
 const BANG_TIME = 9; // seconds from the first click to a galaxy you can fly in (4.5 in v46 to v57); a click fast-forwards it
-const BANG_SKIP = 6; // how much faster the opening runs once someone clicks to skip ahead
+const BANG_SKIP = 6;
+const CHARGE = 1.0; // seconds of build-up before the blast: the sky is pulled into the point // how much faster the opening runs once someone clicks to skip ahead
 const PLANETS_AT = 0.55; // fraction of the opening that passes before the planet seeds start to grow
 const SEED = 0.07; // how big a planet's seed is before it grows, as a share of the finished planet
 const smooth = (a: number, b: number, x: number) => {
@@ -244,7 +245,7 @@ export class Game {
     if (this.phase !== 'void') return;
     if (this.reducedMotion) return this.reveal();
     this.phase = 'bang';
-    this.bangT = 0;
+    this.bangT = -CHARGE; // negative while it charges; the blast is at 0
     this.bangRate = 1;
     this.overview = true;
     this.zoomTarget = this.cam.zoom = this.overviewZoom();
@@ -276,7 +277,7 @@ export class Game {
   private zpos(z: Zone, i: number) {
     if (this.phase === 'live') return { x: z.x, y: z.y, e: 1, r: 0, a: 0, w: 0, hot: 0, grow: 1 };
     if (this.phase === 'void') return { x: 0, y: 0, e: 0, r: 0, a: 0, w: 0, hot: 0, grow: 0 };
-    const k = this.bangT / BANG_TIME;
+    const k = Math.max(0, this.bangT) / BANG_TIME;
     const grow = smooth(i * 0.03, 0.72 + i * 0.03, this.planetK()); // 0 a seed, 1 a finished planet
     // the seed appears inside the fireball and rides out with the rest of the matter
     const e = smooth(0.02, 0.07, k) * (SEED + (1 - SEED) * grow);
@@ -307,11 +308,101 @@ export class Game {
     const c = this.toScreen(0, 0);
     const o = this.singularity();
     const m = 1 - smooth(0, 0.22, bk);
-    return { x: (o.cx - c.x) * m, y: (o.cy - c.y) * m };
+    // the blast shakes the camera for a moment
+    const t = Math.max(0, this.bangT);
+    const amp = 11 * Math.exp(-t * 4.2);
+    return { x: (o.cx - c.x) * m + Math.sin(t * 83) * amp, y: (o.cy - c.y) * m + Math.cos(t * 67) * amp };
+  }
+  /** The camera starts close in, so matter rushes past the edges of the screen, then pulls back to show all of it. */
+  private bangZoom(bk: number) {
+    return 1 + 3.2 * (1 - smooth(0.01, 0.36, bk));
+  }
+  /** A thin horizontal streak of light, the kind a film lens draws through anything very bright. */
+  private lensStreak(g: CanvasRenderingContext2D, x: number, y: number, half: number, alpha: number, thick: number) {
+    if (alpha <= 0.01 || half <= 1) return;
+    const prevA = g.globalAlpha;
+    const col = this.light ? '150,150,235' : '170,200,255';
+    const core = this.light ? '120,120,220' : '255,255,255';
+    const band = (c: string, h: number, a: number) => {
+      const gr = g.createLinearGradient(x - half, 0, x + half, 0);
+      gr.addColorStop(0, `rgba(${c},0)`);
+      gr.addColorStop(0.5, `rgba(${c},${Math.min(1, alpha)})`);
+      gr.addColorStop(1, `rgba(${c},0)`);
+      g.globalAlpha = prevA * a;
+      g.fillStyle = gr;
+      g.fillRect(x - half, y - h / 2, half * 2, h);
+    };
+    band(col, thick * 9, 0.14);
+    band(col, thick * 3, 0.4);
+    band(core, thick, 0.9);
+    g.globalAlpha = prevA;
+  }
+  /** The first stars: points in the gas that flare on one after another, and the core lighting up at the centre. */
+  private births: { a: number; rf: number; at: number; s: number }[] = [];
+  private drawFirstLight(g: CanvasRenderingContext2D, k: number) {
+    if (k < 0.3 || k > 0.9) return;
+    if (!this.births.length) {
+      let seed = 7;
+      const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      for (let i = 0; i < 22; i++) this.births.push({ a: rnd() * Math.PI * 2, rf: 110 + Math.pow(rnd(), 0.8) * (GALAXY_R - 190), at: 0.33 + (i / 22) * 0.2 + rnd() * 0.02, s: 0.7 + rnd() * 0.9 });
+    }
+    const prevOp = g.globalCompositeOperation;
+    if (!this.light) g.globalCompositeOperation = 'lighter';
+    const col = this.light ? '130,130,220' : '206,226,255';
+    const gone = 1 - smooth(0.66, 0.86, k); // the finished disc has its own stars
+    for (const b of this.births) {
+      const since = k - b.at;
+      if (since < 0) continue;
+      const swirl = 1.1 * Math.pow(400 / Math.max(80, b.rf), 0.6);
+      const a = b.a - (1 - k) * 0.5 + (k * k - 1) * swirl;
+      const r = b.rf * (1 - Math.exp(-k * 5.5));
+      const x = Math.cos(a) * r;
+      const y = Math.sin(a) * r;
+      const flare = Math.exp(-since * 26); // 1 the instant it ignites
+      const rise = Math.min(1, since / 0.006);
+      const R = (26 + 150 * flare) * b.s;
+      const gl = g.createRadialGradient(x, y, 0, x, y, R);
+      gl.addColorStop(0, `rgba(${col},${(0.5 + 0.5 * flare) * rise * gone})`);
+      gl.addColorStop(0.2, `rgba(${col},${(0.12 + 0.3 * flare) * rise * gone})`);
+      gl.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = gl;
+      g.fillRect(x - R, y - R, R * 2, R * 2);
+      // a four-point sparkle while it flares
+      const arm = (40 + 260 * flare) * b.s;
+      g.strokeStyle = `rgba(${col},${(0.25 + 0.7 * flare) * rise * gone})`;
+      g.lineWidth = 2.2;
+      g.beginPath();
+      g.moveTo(x - arm, y);
+      g.lineTo(x + arm, y);
+      g.moveTo(x, y - arm * 0.6);
+      g.lineTo(x, y + arm * 0.6);
+      g.stroke();
+    }
+    // the core switches on: a flash, a ring racing outward, a streak through the middle
+    const since = k - 0.43;
+    if (since > 0 && since < 0.3) {
+      const f = Math.exp(-since * 15);
+      const R = 90 + 620 * (1 - Math.exp(-since * 12));
+      const gl = g.createRadialGradient(0, 0, 0, 0, 0, R);
+      const cc = this.light ? '170,160,235' : '214,238,255';
+      gl.addColorStop(0, `rgba(${cc},${0.95 * f})`);
+      gl.addColorStop(0.3, `rgba(${cc},${0.3 * f})`);
+      gl.addColorStop(1, `rgba(${cc},0)`);
+      g.fillStyle = gl;
+      g.fillRect(-R, -R, R * 2, R * 2);
+      const ring = GALAXY_R * 1.25 * (1 - Math.exp(-since * 9));
+      g.strokeStyle = `rgba(${cc},${0.55 * Math.exp(-since * 10)})`;
+      g.lineWidth = 5;
+      g.beginPath();
+      g.arc(0, 0, ring, 0, Math.PI * 2);
+      g.stroke();
+      this.lensStreak(g, 0, 0, 260 + 1500 * f, f, 9);
+    }
+    g.globalCompositeOperation = prevOp;
   }
   /** How far along planet formation is, 0 to 1. Nothing forms until the disc has gathered. */
   private planetK() {
-    return Math.min(1, Math.max(0, (this.bangT / BANG_TIME - PLANETS_AT) / (1 - PLANETS_AT)));
+    return Math.min(1, Math.max(0, (Math.max(0, this.bangT) / BANG_TIME - PLANETS_AT) / (1 - PLANETS_AT)));
   }
   /**
    * The early universe: a hot cloud of matter flung out from the singularity. It slows under drag,
@@ -401,6 +492,7 @@ export class Game {
     const fade = smooth(0.004, 0.03, k) * (1 - smooth(0.52, 0.8, k));
     if (fade <= 0) return;
     const born = smooth(0.36, 0.5, k); // the first stars light the gas back up
+    const near = Math.pow(this.bangZoom(k), 0.8);
     const prev = g.globalCompositeOperation;
     if (!this.light) g.globalCompositeOperation = 'lighter';
     for (const p of this.debris) {
@@ -420,9 +512,9 @@ export class Game {
         ? this.light ? '170,160,230' : '176,208,255'
         : cool(Math.min(0.74, 1 - T), this.light); // never cooler than a dull red-orange, so the gas stays visible
       const al = (0.5 + 0.34 * T + 0.1 * born) * fade;
-      const sz = p.s * (1 + T * 1.5);
+      const sz = (p.s * (1 + T * 1.5)) / near;
       // while it is still flying fast, each piece is drawn as a streak pointing back at where it came from
-      const tail = Math.min(26, p.rf * (1 - ex) * 0.2 * T);
+      const tail = Math.min(46, p.rf * (1 - ex) * 0.3 * T);
       if (tail > sz * 1.5) {
         g.strokeStyle = `rgba(${col},${al * 0.36})`;
         g.lineWidth = sz * 0.5;
@@ -820,7 +912,12 @@ export class Game {
     const g = this.ctx;
     const { W, H } = this;
     const t = this.reducedMotion ? 0 : this.time;
-    const zoom = this.cam.zoom;
+    const charge = this.phase === 'bang' && this.bangT < 0 ? 1 + this.bangT / CHARGE : -1; // 0 to 1 while it builds up
+    const charging = charge >= 0;
+    const cs = charging ? Math.min(1, charge / 0.82) : 0; // the pull; the last moments are a dark, still beat
+    const beat = charging ? Math.max(0, (charge - 0.82) / 0.18) : 0;
+    const sing = this.singularity();
+    const zoom = this.cam.zoom * (this.phase === 'bang' ? this.bangZoom(Math.max(0, this.bangT) / BANG_TIME) : 1);
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const P = this.pal;
     g.fillStyle = P.bg;
@@ -833,13 +930,27 @@ export class Game {
       const y = (((st.y * H * 1.3 - this.cam.y * par * zoom) % H) + H) % H;
       const tw = this.reducedMotion ? 1 : 0.6 + 0.4 * Math.sin(this.time * 1.5 + st.p);
       let lit = 1;
+      if (charging) {
+        // the whole sky falls into the point, slowly and then all at once
+        const pull = cs * cs * cs;
+        const before = Math.pow(Math.max(0, cs - 0.16), 3);
+        const al = st.a * (0.7 + cs) * (1 - smooth(0.9, 1, cs));
+        if (al <= 0.01) continue;
+        g.strokeStyle = `rgba(${P.star},${Math.min(1, al)})`;
+        g.lineWidth = Math.max(1, st.s * 0.8);
+        g.beginPath();
+        g.moveTo(sing.cx + (x - sing.cx) * (1 - pull), sing.cy + (y - sing.cy) * (1 - pull));
+        g.lineTo(sing.cx + (x - sing.cx) * (1 - before) + 0.5, sing.cy + (y - sing.cy) * (1 - before) + 0.5);
+        g.stroke();
+        continue;
+      }
       if (this.phase === 'bang') {
         // the first stars switch on one at a time, each with a brief flare
-        const bkS = this.bangT / BANG_TIME;
+        const bkS = Math.max(0, this.bangT) / BANG_TIME;
         const at = 0.33 + (st.p / 6) * 0.38;
         const since = bkS - at;
         // the old sky is lost in the glare of the fireball; the new one switches on a star at a time
-        lit = since > 0 ? Math.min(1, since / 0.03) * (1 + 1.6 * Math.exp(-since * 45)) : 1 - smooth(0, 0.035, bkS);
+        lit = since > 0 ? Math.min(1, since / 0.03) * (1 + 1.6 * Math.exp(-since * 45)) : 0;
         if (lit <= 0.01) continue;
       }
       g.fillStyle = `rgba(${P.star},${Math.min(1, st.a * tw * lit)})`;
@@ -858,30 +969,64 @@ export class Game {
       g.lineTo(sh.x - sh.vx * 0.14, sh.y - sh.vy * 0.14);
       g.stroke();
     }
-    if (this.phase === 'void') {
+    if (this.phase === 'void' || charging) {
       // before the big bang there is only the singularity: one point, waiting
       // centred on big screens; moved clear of the title text on phones and short landscape screens
-      const { cx, cy } = this.singularity();
-      const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(this.time * 1.6);
-      const halo = g.createRadialGradient(cx, cy, 0, cx, cy, 46 + pulse * 22);
-      halo.addColorStop(0, `${P.gold}${0.5 + pulse * 0.3})`);
-      halo.addColorStop(0.25, `${P.gold}0.12)`);
-      halo.addColorStop(1, `${P.gold}0)`);
-      g.fillStyle = halo;
-      g.fillRect(cx - 70, cy - 70, 140, 140);
-      g.fillStyle = `rgba(${P.text},0.95)`;
-      g.beginPath();
-      g.arc(cx, cy, 1.8, 0, Math.PI * 2);
-      g.fill();
+      // once started it charges: it trembles, light and rings fall into it, then one dark, still beat before the blast
+      const tremble = cs * cs * 2.6 * (1 - beat);
+      const cx = sing.cx + Math.sin(this.time * 91) * tremble;
+      const cy = sing.cy + Math.cos(this.time * 73) * tremble;
+      const hold = 1 - beat;
+      const pulse = this.reducedMotion ? 0.5 : charging ? 1 : 0.5 + 0.5 * Math.sin(this.time * 1.6);
+      if (hold > 0.01) {
+        const hr = (46 + pulse * 22) * (1 - cs * 0.5) * hold;
+        const halo = g.createRadialGradient(cx, cy, 0, cx, cy, hr);
+        halo.addColorStop(0, `${P.gold}${(0.5 + pulse * 0.3) * (1 - cs)})`);
+        halo.addColorStop(0.25, `${P.gold}${0.12 * (1 - cs)})`);
+        halo.addColorStop(1, `${P.gold}0)`);
+        g.fillStyle = halo;
+        g.fillRect(cx - 70, cy - 70, 140, 140);
+      }
+      if (charging && hold > 0.01) {
+        const prevOp = g.globalCompositeOperation;
+        if (!this.light) g.globalCompositeOperation = 'lighter';
+        const ink = this.light ? '120,110,200' : '214,230,255';
+        // rings of light closing in on the point
+        for (let j = 0; j < 3; j++) {
+          const u = cs * 1.5 - j * 0.25;
+          if (u <= 0 || u >= 1) continue;
+          g.strokeStyle = `rgba(${ink},${0.55 * Math.sin(u * Math.PI) * hold})`;
+          g.lineWidth = 1.2;
+          g.beginPath();
+          g.arc(cx, cy, 300 * Math.pow(1 - u, 1.6) + 3, 0, Math.PI * 2);
+          g.stroke();
+        }
+        // the point itself burns whiter and tighter
+        const wr = (14 + 60 * cs) * hold;
+        const white = g.createRadialGradient(cx, cy, 0, cx, cy, wr);
+        white.addColorStop(0, `rgba(${this.light ? '140,130,220' : '255,255,255'},${cs})`);
+        white.addColorStop(0.3, `rgba(${ink},${cs * 0.4})`);
+        white.addColorStop(1, `rgba(${ink},0)`);
+        g.fillStyle = white;
+        g.fillRect(cx - wr, cy - wr, wr * 2, wr * 2);
+        this.lensStreak(g, cx, cy, (30 + this.W * 0.42 * cs * cs) * hold, cs * hold, 1.6);
+        g.globalCompositeOperation = prevOp;
+      }
+      if (hold > 0.01) {
+        g.fillStyle = `rgba(${P.text},0.95)`;
+        g.beginPath();
+        g.arc(cx, cy, 1.8 * hold, 0, Math.PI * 2);
+        g.fill();
+      }
       g.font = '500 10px "IBM Plex Mono", monospace';
       g.textAlign = 'left';
       g.textBaseline = 'middle';
-      g.fillStyle = `rgba(${P.dim},0.8)`;
+      g.fillStyle = `rgba(${P.dim},${0.8 * (1 - cs)})`;
       g.fillText('t = 0', cx + 16, cy - 14);
       return;
     }
     const live = this.phase === 'live';
-    const bk = live ? 1 : this.bangT / BANG_TIME;
+    const bk = live ? 1 : Math.max(0, this.bangT) / BANG_TIME;
 
     g.save();
     // the bang goes off exactly where the point was waiting on the title screen, and everything drifts to the middle together
@@ -909,7 +1054,10 @@ export class Game {
     }
     g.drawImage(this.light && this.galaxyLight ? this.galaxyLight : this.galaxy, -TEX_WORLD / 2, -TEX_WORLD / 2, TEX_WORLD, TEX_WORLD);
     g.restore();
-    if (!live) this.drawDebris(g, bk);
+    if (!live) {
+      this.drawDebris(g, bk);
+      this.drawFirstLight(g, bk);
+    }
     const coreA = live ? 1 : smooth(0.4, 0.58, bk);
     if (coreA > 0.01) {
       g.save();
@@ -1011,7 +1159,19 @@ export class Game {
       if (zp.e <= 0) continue;
       g.save();
       g.translate(zp.x, zp.y);
-      if (zp.e < 1) g.scale(0.12 + zp.e * 0.88, 0.12 + zp.e * 0.88);
+      if (zp.e < 1) {
+        const sc = (0.12 + zp.e * 0.88) / Math.pow(live ? 1 : this.bangZoom(bk), 0.6);
+        g.scale(sc, sc);
+      }
+      const done = live ? 0 : smooth(0.8, 1, zp.grow);
+      if (done > 0 && done < 1) {
+        // finished: a ring of light pings off the new planet
+        g.strokeStyle = `rgba(${P.star},${0.7 * (1 - done)})`;
+        g.lineWidth = 2 / zoom;
+        g.beginPath();
+        g.arc(0, 0, z.look.r * (1.5 + 2.6 * done), 0, Math.PI * 2);
+        g.stroke();
+      }
       // orbit marker ring that grows on hover
       g.strokeStyle = `${P.gold}${0.12 + h * 0.5})`;
       g.lineWidth = 1 / zoom;
@@ -1291,6 +1451,47 @@ export class Game {
           g.fillRect(fx - hr, fy - hr, hr * 2, hr * 2);
         }
         g.globalCompositeOperation = prev;
+      }
+      {
+        const tS = Math.max(0, this.bangT);
+        const c0 = this.toScreen(0, 0);
+        const bx = c0.x + drift.x;
+        const by = c0.y + drift.y;
+        const prevOp = g.globalCompositeOperation;
+        if (!this.light) g.globalCompositeOperation = 'lighter';
+        // the first light races outward as a thin ring, split into colours at its edge
+        const ra = Math.exp(-tS * 1.35);
+        if (ra > 0.02) {
+          const Rr = 8 + Math.hypot(W, H) * 0.9 * (1 - Math.exp(-tS * 1.7));
+          const soft = this.light ? '150,140,220' : '170,200,255';
+          const ring = (r: number, w: number, c: string, a: number) => {
+            if (r <= 0) return;
+            g.strokeStyle = `rgba(${c},${a})`;
+            g.lineWidth = w;
+            g.beginPath();
+            g.arc(bx, by, r, 0, Math.PI * 2);
+            g.stroke();
+          };
+          ring(Rr, 46, soft, ra * 0.07);
+          ring(Rr, 16, soft, ra * 0.16);
+          ring(Rr + 5, 2, this.light ? '176,140,230' : '178,128,255', ra * 0.55);
+          ring(Rr - 5, 2, this.light ? '130,170,230' : '120,224,255', ra * 0.5);
+          ring(Rr, 2.4, this.light ? '120,110,200' : '255,255,255', ra * 0.9);
+          // a slower, fainter second front behind it
+          ring(Rr * 0.62, 1.4, soft, ra * 0.3);
+        }
+        this.lensStreak(g, bx, by, 50 + W * 1.05 * (1 - Math.exp(-tS * 40)) * Math.exp(-tS * 1.2), Math.exp(-tS * 1.9), 2.4);
+        g.globalCompositeOperation = prevOp;
+        // and for a few frames, everything is light
+        const fa = Math.exp(-tS * 8);
+        if (fa > 0.01) {
+          const fl = g.createRadialGradient(bx, by, 0, bx, by, Math.hypot(W, H) * 0.7);
+          fl.addColorStop(0, `rgba(255,255,255,${fa})`);
+          fl.addColorStop(0.3, `rgba(${this.light ? '255,255,255' : '226,234,255'},${fa * 0.6})`);
+          fl.addColorStop(1, `rgba(${this.light ? '255,255,255' : '150,170,255'},${fa * 0.12})`);
+          g.fillStyle = fl;
+          g.fillRect(0, 0, W, H);
+        }
       }
       // a small clock: where in the real story this moment sits
       let ei = 0;
