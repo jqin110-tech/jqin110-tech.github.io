@@ -6,7 +6,7 @@ The site at **https://jqin110-tech.github.io**. The top is a small galaxy you ca
 
 | Path | What it is |
 |---|---|
-| `index.html`, `assets/`, `og.jpg` | The built site. GitHub Pages serves these files as they are. |
+| `index.html`, `assets/`, `preview.jpg`, `og.jpg` | The built site. GitHub Pages serves these files as they are. |
 | `source/` | The code the site is built from: TypeScript, Vite and Canvas 2D, with no game engine. |
 
 ## Who built what
