@@ -1,0 +1,575 @@
+import './style.css';
+import { criteria, resume } from './data';
+import { Game } from './game';
+import { zones, type Zone } from './zones';
+import { roomBody } from './content';
+import { museumScene } from './museum';
+import { cabinScene, lectureScene, observatoryScene, postScene, streetScene } from './places';
+import { mountRoom, roomMarkup, type SceneFactory } from './room';
+import { cvSections, mountCv, projectId, quickResume, siteResume } from './cv';
+import { mountMotion } from './motion';
+
+const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector(sel) as T;
+const $$ = <T extends Element = HTMLElement>(sel: string) => Array.from(document.querySelectorAll(sel)) as T[];
+
+const STORE = 'resume-galaxy-visited';
+const store = {
+  get(): string[] {
+    try {
+      return JSON.parse(localStorage.getItem(STORE) || '[]');
+    } catch {
+      return [];
+    }
+  },
+  set(v: string[]) {
+    try {
+      localStorage.setItem(STORE, JSON.stringify(v));
+    } catch {
+      /* progress just isn't remembered */
+    }
+  },
+};
+
+const visited = new Set<string>(store.get().filter((id) => zones.some((z) => z.id === id)));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const coarse = matchMedia('(pointer: coarse)');
+
+// ---------- static text ----------
+$$('[data-name]').forEach((el) => (el.textContent = resume.name));
+$$('[data-headline]').forEach((el) => (el.textContent = resume.headline));
+$('[data-cv]').innerHTML = siteResume();
+const cvToast = document.createElement('div');
+cvToast.className = 'toast cv-toast mono';
+cvToast.setAttribute('role', 'status');
+document.body.append(cvToast);
+let cvToastTimer = 0;
+mountCv($('[data-cv]'), (msg) => {
+  cvToast.textContent = msg;
+  cvToast.classList.add('show');
+  clearTimeout(cvToastTimer);
+  cvToastTimer = window.setTimeout(() => cvToast.classList.remove('show'), 2600);
+});
+$('[data-cv-tabs]').innerHTML = cvSections.map((s) => `<li><a class="pill tab" href="#${s.id}">${s.label}</a></li>`).join('');
+
+const canvas = $<HTMLCanvasElement>('#world');
+const titleCard = $('[data-title]');
+const dialog = $<HTMLDialogElement>('#room');
+const quick = $<HTMLDialogElement>('#quick');
+/** A planet page or the quick resume is open over the site. */
+const modalOpen = () => dialog.open || quick.open;
+// declared up here because a link straight to the quick resume opens it before the rest of the page is wired
+let locked = false; // the page is held still while the game is being played
+let touchGuard = false;
+const toastEl = $('[data-toast]');
+const land = $<HTMLButtonElement>('[data-land]');
+const resumeView = $('#resume');
+
+let toastTimer = 0;
+function toast(msg: string) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toastEl.classList.remove('show'), 3600);
+}
+
+// ---------- game ----------
+let current: Zone | null = null;
+let bangToast = false;
+const game = new Game(canvas, {
+  onNear(z) {
+    current = z ?? current;
+    land.hidden = !z;
+    if (z) land.innerHTML = `<span class="mono">${z.code}</span> Land on ${z.title} <kbd>${coarse.matches ? 'TAP' : 'E'}</kbd>`;
+    $$('[data-travel] button').forEach((b) => b.toggleAttribute('aria-current', b.dataset.goto === z?.id));
+  },
+  onEnter: openRoom,
+  onNotice: toast,
+  onDimension: setDimension,
+  onReady() {
+    syncMap();
+    if (bangToast) {
+      toast(coarse.matches ? 'Hold anywhere to fly. Tap a planet to land.' : 'Fly with the arrow keys, or click a planet.');
+      // then point out the secret in the middle
+      setTimeout(() => {
+        if (!modalOpen() && scrolled < 0.5) toast(game.isLight ? 'The white hole in the centre leads back to dark mode.' : 'The black hole in the centre leads to light mode.');
+      }, 4400);
+    }
+    bangToast = false;
+  },
+});
+game.reducedMotion = reduced.matches;
+const DIM = 'resume-galaxy-dimension';
+function setDimension(light: boolean) {
+  document.documentElement.classList.toggle('other-side', light);
+  const coreLabel = document.querySelector('[data-core-label]');
+  if (coreLabel) coreLabel.textContent = light ? 'Dark mode' : 'Light mode';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#f6f1ea' : '#030409');
+  document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-checked', String(!light)));
+  try {
+    localStorage.setItem(DIM, light ? 'light' : 'dark');
+  } catch {
+    /* not remembered */
+  }
+}
+let startLight = false;
+try {
+  startLight = localStorage.getItem(DIM) === 'light';
+} catch {
+  /* default dimension */
+}
+game.showLabels = false;
+document.body.classList.add('at-title');
+reduced.addEventListener('change', () => (game.reducedMotion = reduced.matches));
+if (startLight) {
+  game.setLight(true);
+  setDimension(true);
+}
+game.setVisited(visited);
+land.addEventListener('click', () => game.tryEnter());
+
+// ---------- dark mode switch: the plain way to change dimension, next to the black hole ----------
+$$('[data-mode]').forEach((b) =>
+  b.addEventListener('click', () => {
+    const light = !game.isLight;
+    game.setLight(light);
+    setDimension(light);
+  }),
+);
+
+// ---------- the quick resume: short and plain, for a reader in a hurry ----------
+$('[data-quick-body]').innerHTML = quickResume();
+function openQuick() {
+  if (dialog.open) dialog.close();
+  if (!quick.open) quick.showModal();
+  syncTouchGuard();
+  quick.querySelector<HTMLElement>('.quick-body')!.scrollTop = 0;
+}
+document.addEventListener('click', (e) => {
+  const el = e.target as HTMLElement;
+  if (el.closest('[data-quick]')) openQuick();
+  else if (el.closest('[data-quick-full]')) {
+    quick.close();
+    toResume();
+  } else if (el.closest('[data-quick-close]') || el === quick) quick.close();
+});
+if (location.hash === '#quick') openQuick();
+
+// ---------- checklist + planet nav ----------
+function unlocked() {
+  const ids = new Set<string>();
+  for (const z of zones) if (visited.has(z.id)) z.criteria.forEach((c) => ids.add(c));
+  return ids;
+}
+function renderProgress() {
+  const u = unlocked();
+  $('[data-crit-list]').innerHTML = criteria
+    .map((c) => {
+      const z = zones.find((z) => (z.criteria as readonly string[]).includes(c.id))!;
+      const on = u.has(c.id);
+      return `<li class="${on ? 'on' : ''}"><span class="tick" aria-hidden="true">${on ? '✓' : ''}</span>
+        <span>${c.label}<span class="sr-only">${on ? ', discovered' : ', not discovered yet'}</span></span>
+        <button class="linkish mono" data-goto="${z.id}">${z.title}</button></li>`;
+    })
+    .join('');
+  $('[data-crit-count]').textContent = `${u.size}/${criteria.length}`;
+  $('.meter-fill').style.width = `${(u.size / criteria.length) * 100}%`;
+  $$('[data-travel] button').forEach((b) => b.classList.toggle('done', visited.has(b.dataset.goto!)));
+}
+
+$('[data-travel]').innerHTML = zones
+  .map(
+    (z) => `<li><button class="pill planet-pill" data-goto="${z.id}" style="--dot:${z.look.glow}">
+      <span class="dot" aria-hidden="true"></span><span>${z.title}</span></button></li>`,
+  )
+  .join('') +
+  `<li class="core-item"><button class="pill planet-pill core-pill" data-core title="Fly into the black hole">
+    <span class="half" aria-hidden="true"></span><span data-core-label>${startLight ? 'Dark mode' : 'Light mode'}</span></button></li>`;
+$('[data-core]').addEventListener('click', () => {
+  hideTitle();
+  toast(game.isLight ? 'Flying into the white hole…' : 'Flying into the black hole…');
+  game.diveIntoCore();
+  canvas.focus({ preventScroll: true });
+});
+
+document.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-goto]');
+  if (!b) return;
+  const z = zones.find((z) => z.id === b.dataset.goto)!;
+  $<HTMLDetailsElement>('.checklist').open = false;
+  if (dialog.open) dialog.close();
+  hideTitle();
+  game.teleport(z);
+  syncMap();
+  openRoom(z);
+});
+
+// ---------- map toggle ----------
+const mapBtn = $<HTMLButtonElement>('[data-map]');
+function syncMap() {
+  const on = game.isOverview && game.isLive;
+  mapBtn.setAttribute('aria-pressed', String(on));
+  $('[data-map-label]').textContent = on ? 'CLOSE MAP' : 'MAP';
+}
+mapBtn.addEventListener('click', () => {
+  hideTitle();
+  game.setOverview(!game.isOverview);
+  syncMap();
+  canvas.focus({ preventScroll: true });
+});
+
+// ---------- rooms ----------
+let leaveMuseum: (() => void) | null = null;
+const PLACES: Partial<Record<Zone['id'], SceneFactory>> = {
+  brief: cabinScene,
+  campus: lectureScene,
+  workshop: museumScene,
+  tower: streetScene,
+  observatory: observatoryScene,
+  signal: postScene,
+};
+function openRoom(z: Zone) {
+  const i = zones.indexOf(z);
+  const n = (k: number) => String(k + 1).padStart(2, '0');
+  $('[data-room-kicker]').textContent = `${n(i)} · ${z.section}`;
+  $('[data-room-title]').textContent = z.title;
+  leaveMuseum?.();
+  leaveMuseum = null;
+  const place = PLACES[z.id];
+  dialog.classList.toggle('museum', !!place);
+  $('[data-room-body]').innerHTML = place ? roomMarkup(matchMedia('(pointer: coarse)').matches) : roomBody(z);
+  $('[data-room-count]').textContent = `${n(i)} / ${String(zones.length).padStart(2, '0')}`;
+  const prev = $<HTMLButtonElement>('[data-prev]');
+  prev.disabled = i === 0;
+  prev.innerHTML = i === 0 ? '<span aria-hidden="true">←</span> Back' : `<span aria-hidden="true">←</span> ${zones[i - 1].title}`;
+  $('[data-next]').innerHTML = i === zones.length - 1 ? 'Full resume <span aria-hidden="true">→</span>' : `${zones[i + 1].title} <span aria-hidden="true">→</span>`;
+  current = z;
+
+  const before = unlocked().size;
+  visited.add(z.id);
+  store.set([...visited]);
+  game.setVisited(visited);
+  renderProgress();
+  const after = unlocked().size;
+
+  game.stop();
+  if (!dialog.open) dialog.showModal();
+  syncTouchGuard();
+  $('.room-body').scrollTop = 0;
+  // most planets open onto a small place you walk through, not a page
+  if (place) leaveMuseum = mountRoom($('[data-museum]'), dialog, { calm: reduced.matches, onRoom: toProject, onExit: () => dialog.close() }, place);
+  if (after > before && after === criteria.length) toast('Everything discovered. Mission complete.');
+  else if (after > before) toast(`Discovered: ${after} of ${criteria.length}`);
+}
+
+function step(d: number) {
+  if (!current) return;
+  const i = zones.indexOf(current) + d;
+  if (i >= zones.length) {
+    dialog.close();
+    toResume();
+    return;
+  }
+  if (i < 0) return;
+  game.teleport(zones[i]);
+  openRoom(zones[i]);
+}
+$('[data-next]').addEventListener('click', () => step(1));
+$('[data-prev]').addEventListener('click', () => step(-1));
+$('[data-close]').addEventListener('click', () => dialog.close());
+dialog.addEventListener('click', (e) => {
+  if (e.target === dialog) dialog.close();
+});
+dialog.addEventListener('close', () => {
+  if (dialog.open) return; // already reopened on another planet
+  leaveMuseum?.();
+  leaveMuseum = null;
+  if (scrolled > 0.5) return;
+  game.start();
+  canvas.focus({ preventScroll: true });
+});
+
+// ---------- title ----------
+function hideTitle(bang = false) {
+  if (titleCard.hidden) return;
+  playing = true;
+  scrollTo({ top: 0 });
+  syncLock();
+  titleCard.classList.add('leaving');
+  document.body.classList.remove('at-title');
+  game.showLabels = true;
+  setTimeout(() => (titleCard.hidden = true), reduced.matches ? 0 : 500);
+  if (bang) game.bigBang();
+  else game.reveal();
+  syncMap();
+}
+$('[data-start]').addEventListener('click', () => {
+  bangToast = true;
+  hideTitle(true);
+  canvas.focus({ preventScroll: true });
+});
+
+// ---------- keyboard ----------
+const GAME_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyA', 'KeyD', 'KeyW', 'KeyS']);
+function gameHasFocus() {
+  const a = document.activeElement;
+  return a === canvas || a === document.body || a === null;
+}
+addEventListener('keydown', (e) => {
+  if (scrolled > 0.5 || modalOpen() || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!titleCard.hidden) {
+    if ((e.code === 'Enter' || e.code === 'Space') && gameHasFocus()) {
+      e.preventDefault();
+      $<HTMLButtonElement>('[data-start]').click();
+    }
+    return;
+  }
+  if (!gameHasFocus()) return;
+  if (GAME_KEYS.has(e.code)) {
+    e.preventDefault();
+    game.keyDown(e.code);
+  } else if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') {
+    e.preventDefault();
+    game.tryEnter();
+  } else if (e.code === 'KeyL') {
+    game.diveIntoCore();
+  } else if (e.code === 'KeyM') {
+    mapBtn.click();
+  } else if (/^Digit[1-9]$/.test(e.code)) {
+    const z = zones[Number(e.code.slice(5)) - 1];
+    if (z) game.flyTo(z);
+  } else if (e.code === 'KeyR') {
+    toResume();
+  }
+});
+addEventListener('keyup', (e) => game.keyUp(e.code));
+addEventListener('blur', () => GAME_KEYS.forEach((k) => game.keyUp(k)));
+canvas.addEventListener('pointerdown', () => {
+  if (!titleCard.hidden) hideTitle();
+});
+
+// ---------- while you fly, the page stays put ----------
+// Once the game has started, the wheel and touch drags no longer scroll the page, so the galaxy
+// can't be blurred by accident. The Resume button (or R) is the way down; scrolling works again there.
+let playing = false; // the title card has been dismissed
+let goingDown = false; // a deliberate trip to the resume is in progress
+let lockHintAt = -1e9;
+function syncLock() {
+  const on = playing && scrollY < 2 && !goingDown;
+  if (on !== locked) {
+    locked = on;
+    document.documentElement.classList.toggle('playing', on);
+  }
+  syncTouchGuard();
+}
+// The listener that can cancel a touch drag is only attached while there is something to hold still.
+// Left on all the time, it makes a phone ask the page for permission before every scroll, which is what makes scrolling stutter.
+function syncTouchGuard() {
+  const on = locked || modalOpen();
+  if (on === touchGuard) return;
+  touchGuard = on;
+  if (on) addEventListener('touchmove', blockScroll, { passive: false });
+  else removeEventListener('touchmove', blockScroll);
+}
+/** The panel under the pointer, if it still has room to scroll the way the gesture is going. */
+function roomToScroll(el: HTMLElement | null, dx: number, dy: number) {
+  const box = el?.closest?.<HTMLElement>('.room-body, .quick-body, .checklist-panel, .travel');
+  if (!box) return false;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0 ? box.scrollLeft + box.clientWidth < box.scrollWidth - 1 : box.scrollLeft > 0;
+  }
+  return dy > 0 ? box.scrollTop + box.clientHeight < box.scrollHeight - 1 : box.scrollTop > 0;
+}
+let touchX = 0;
+let touchY = 0;
+addEventListener(
+  'touchstart',
+  (e) => {
+    touchX = e.touches[0].clientX;
+    touchY = e.touches[0].clientY;
+  },
+  { passive: true },
+);
+function blockScroll(e: Event) {
+  // a planet page counts as playing: the page behind it must never move
+  if (!locked && !modalOpen()) return;
+  if (!e.cancelable) return;
+  const el = e.target as HTMLElement | null;
+  let dx = 0;
+  let dy = 0;
+  if (e instanceof WheelEvent) {
+    if (e.ctrlKey) return; // pinch zoom
+    dx = e.shiftKey ? e.deltaY : e.deltaX;
+    dy = e.shiftKey ? 0 : e.deltaY;
+  } else {
+    const t = (e as TouchEvent).touches[0];
+    if (!t || (e as TouchEvent).touches.length > 1) return;
+    dx = touchX - t.clientX;
+    dy = touchY - t.clientY;
+  }
+  if (roomToScroll(el, dx, dy)) return;
+  e.preventDefault();
+  if (e.type === 'wheel' && performance.now() - lockHintAt > 8000 && !modalOpen() && !el?.closest?.('.travel, .checklist-panel')) {
+    lockHintAt = performance.now();
+    toast('Scrolling is paused while you fly. Press Resume ↓ to read the resume.');
+  }
+}
+addEventListener('wheel', blockScroll, { passive: false });
+dialog.addEventListener('close', syncTouchGuard);
+quick.addEventListener('close', syncTouchGuard);
+addEventListener('keydown', (e) => {
+  if (modalOpen()) {
+    // keys scroll the open page itself, never the page behind it
+    const el = e.target as HTMLElement | null;
+    if (el?.closest?.('input, textarea, select')) return;
+    const body = quick.open ? quick.querySelector<HTMLElement>('.quick-body')! : dialog.querySelector<HTMLElement>('.room-body')!;
+    const page = body.clientHeight * 0.85;
+    const step: Record<string, number> = { PageDown: page, PageUp: -page, ArrowDown: 60, ArrowUp: -60, End: 1e6, Home: -1e6 };
+    if (e.code === 'Space' && !el?.closest?.('button, a, summary')) step.Space = e.shiftKey ? -page : page;
+    if (e.code in step) {
+      e.preventDefault();
+      body.scrollBy({ top: step[e.code] });
+    }
+    return;
+  }
+  if (!locked) return;
+  if (['PageDown', 'PageUp', 'End', 'Home'].includes(e.code)) e.preventDefault();
+});
+
+// ---------- one page: the galaxy on top, the resume scrolls up over it ----------
+let scrolled = 0; // 0 = galaxy fills the screen, 1 = scrolled a full screen down
+const smooth = () => (reduced.matches ? 'auto' : 'smooth') as ScrollBehavior;
+function toResume() {
+  if (dialog.open) dialog.close();
+  goingDown = true;
+  setTimeout(() => (goingDown = false), 1600);
+  syncLock();
+  resumeView.scrollIntoView({ behavior: smooth() });
+  resumeView.focus({ preventScroll: true });
+}
+/** Leave the galaxy for one project's room on the page below. */
+function toProject(name: string) {
+  if (dialog.open) dialog.close();
+  goingDown = true;
+  setTimeout(() => (goingDown = false), 1600);
+  syncLock();
+  document.getElementById(projectId(name))?.scrollIntoView({ behavior: smooth() });
+}
+$$('[data-to-resume]').forEach((a) =>
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    toResume();
+  }),
+);
+$$('[data-to-top]').forEach((a) =>
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    scrollTo({ top: 0, behavior: smooth() });
+    canvas.focus({ preventScroll: true });
+  }),
+);
+$$<HTMLAnchorElement>('.cv-tabs a').forEach((a) =>
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelector(a.hash)?.scrollIntoView({ behavior: smooth(), block: 'start' });
+  }),
+);
+
+const reveals = $$('.reveal');
+const motion = mountMotion($('[data-cv]'), reduced.matches);
+// phones: blocks fade up once as they arrive, with nothing recalculated while the page scrolls
+const phone = matchMedia('(max-width: 860px)');
+const appScroll = () => phone.matches && !reduced.matches;
+let arrivals: IntersectionObserver | null = null;
+function syncReveals() {
+  arrivals?.disconnect();
+  arrivals = null;
+  if (!appScroll()) return;
+  // the root reaches far above the screen, so a block that was jumped past still counts as arrived
+  const o = new IntersectionObserver(
+    (es) => {
+      for (const e of es) {
+        if (!e.isIntersecting) continue;
+        const el = e.target as HTMLElement;
+        o.unobserve(el);
+        el.dataset.seen = '1';
+        el.style.setProperty('--f', '1');
+      }
+    },
+    { rootMargin: '100000px 0px 0px 0px', threshold: 0.12 },
+  );
+  for (const el of reveals) {
+    if (el.dataset.seen) continue;
+    el.style.setProperty('--f', '0');
+    el.classList.remove('sharp');
+    o.observe(el);
+  }
+  arrivals = o;
+}
+syncReveals();
+phone.addEventListener('change', () => {
+  syncReveals();
+  queue();
+});
+const nav = $('.cv-nav');
+const tabs = $$<HTMLAnchorElement>('.cv-tabs a');
+let ticking = false;
+function onScroll() {
+  ticking = false;
+  const vh = innerHeight;
+  scrolled = Math.min(1, Math.max(0, scrollY / vh));
+  // the galaxy softens and sinks back as the resume rises over it
+  document.documentElement.style.setProperty('--away', scrolled.toFixed(3));
+  // with nothing to soften, drop the filter altogether so the galaxy is not sent through one every frame
+  document.documentElement.classList.toggle('at-top', scrolled < 0.002);
+  if (scrolled >= 0.98) game.stop();
+  else if (!modalOpen()) game.start();
+  // each block comes into focus as it rises from the bottom of the screen
+  // near the end of the page everything snaps into focus, so the last blocks are never stuck blurry
+  const left = document.documentElement.scrollHeight - vh - scrollY;
+  const end = Math.min(1, Math.max(0, 1 - left / (vh * 0.35)));
+  for (const el of appScroll() ? [] : reveals) {
+    const top = el.getBoundingClientRect().top;
+    const f = reduced.matches ? 1 : Math.max(end, Math.min(1, Math.max(0, (vh * 0.98 - top) / (vh * 0.42))));
+    el.style.setProperty('--f', f.toFixed(3));
+    el.classList.toggle('sharp', f >= 0.999);
+  }
+  motion.update(vh);
+  nav.style.setProperty('--page', Math.min(1, Math.max(0, (scrollY - vh) / Math.max(1, document.documentElement.scrollHeight - vh * 2))).toFixed(4));
+  if (scrolled > 0.2) goingDown = false;
+  syncLock();
+  nav.classList.toggle('on', scrolled > 0.85);
+  let cur = '';
+  for (const s2 of cvSections) {
+    const el = document.getElementById(s2.id);
+    if (el && el.getBoundingClientRect().top < vh * 0.4) cur = s2.id;
+  }
+  tabs.forEach((t) => t.toggleAttribute('aria-current', t.hash === '#' + cur));
+}
+const queue = () => {
+  if (!ticking) {
+    ticking = true;
+    requestAnimationFrame(onScroll);
+  }
+};
+addEventListener('scroll', queue, { passive: true });
+addEventListener('resize', queue);
+$$('[data-print]').forEach((b) => b.addEventListener('click', () => print()));
+if (location.hash === '#resume') requestAnimationFrame(() => toResume());
+
+renderProgress();
+onScroll();
+document.fonts?.ready.then(() => game.setVisited(visited));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) game.stop();
+  else if (!modalOpen() && scrolled < 0.98) game.start();
+});
+// let the galaxy drift behind the title card
+if (scrolled < 0.98) game.start();
+if (coarse.matches) $('[data-hint]').textContent = 'Hold anywhere to fly · tap a planet to land';
+// print every role expanded, then put things back
+let closedForPrint: HTMLDetailsElement[] = [];
+addEventListener('beforeprint', () => {
+  closedForPrint = $$<HTMLDetailsElement>('details:not([open])');
+  closedForPrint.forEach((d) => (d.open = true));
+});
+addEventListener('afterprint', () => closedForPrint.forEach((d) => (d.open = false)));
