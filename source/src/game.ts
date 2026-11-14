@@ -52,6 +52,23 @@ const cool = (u: number, light: boolean) => {
   return `${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)}`;
 };
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+/**
+ * How the seeds circle during the opening. Speed builds as they leave the fireball, holds while they
+ * orbit as seeds, and falls away as the planets form. `done` is the share of the lap finished (0 to 1).
+ */
+const ORBIT_STEPS = 240;
+const orbitSpeed = (k: number) => smooth(0.03, 0.15, k) * (1 - smooth(0.46, 0.96, k));
+const ORBIT_SUM: number[] = (() => {
+  const acc = [0];
+  for (let i = 1; i <= ORBIT_STEPS; i++) acc.push(acc[i - 1] + orbitSpeed((i - 0.5) / ORBIT_STEPS) / ORBIT_STEPS);
+  return acc;
+})();
+const orbit = (k: number) => {
+  const x = Math.min(1, Math.max(0, k)) * ORBIT_STEPS;
+  const i = Math.min(ORBIT_STEPS - 1, Math.floor(x));
+  const total = ORBIT_SUM[ORBIT_STEPS];
+  return { done: (ORBIT_SUM[i] + (ORBIT_SUM[i + 1] - ORBIT_SUM[i]) * (x - i)) / total, speed: orbitSpeed(k) / total };
+};
 const ease = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
 
 export interface GameEvents {
@@ -270,10 +287,12 @@ export class Game {
     // a slow drift around the centre, inner orbits a little quicker; it eases to a stop on the spiral
     // (the seeds keep the same spread around the centre as the finished planets, so they never bunch up)
     const rmin = Math.min(...zones.map((q) => Math.hypot(q.x, q.y)));
-    const turn = 1.25 + 0.45 * Math.pow(rmin / rf, 0.6); // radians in total: about a quarter turn over the whole opening
-    const u = Math.min(1, Math.max(0, k / 0.96));
-    const a = af - turn * (1 - u) * (1 - u);
-    const w = turn * 2 * (1 - u); // angular speed, for the motion trail
+    // about one lap in all, the inner seeds a touch more. Most of it happens while they are still seeds:
+    // they swing out of the fireball, circle the centre through the dark, then slow to a stop as they grow.
+    const turn = Math.PI * 2 * 0.95 + 0.55 * Math.pow(rmin / rf, 0.6);
+    const o = orbit(k);
+    const a = af - turn * (1 - o.done);
+    const w = turn * o.speed; // angular speed, for the motion trail
     // a seed is a glowing ember: bright in the fireball, dimmer in the dark, then it cools into its own colours as it grows
     const hot = (0.55 + 0.45 * (1 - smooth(0.1, 0.32, k))) * (1 - smooth(0.25, 0.95, grow));
     return { x: Math.cos(a) * r, y: Math.sin(a) * r, e, r, a, w, hot, grow };
@@ -967,10 +986,11 @@ export class Game {
         g.arc(0, 0, zp.r, 0, Math.PI * 2);
         g.stroke();
         // a faint trail along the orbit while it is still drifting
-        const len = Math.min(0.9, zp.w * 0.16);
-        if (len > 0.02 && zp.grow > 0.02) {
+        const len = Math.min(0.55, zp.w * 0.045);
+        const seen = Math.max(zp.grow, 0.7 * smooth(0.1, 0.2, bk)); // seeds leave a trail too, once they are clear of the fireball
+        if (len > 0.02 && seen > 0.02) {
           for (let s2 = 0; s2 < 6; s2++) {
-            g.strokeStyle = `rgba(${P.star},${(0.26 * (6 - s2)) / 6 * zp.grow})`;
+            g.strokeStyle = `rgba(${P.star},${(0.3 * (6 - s2)) / 6 * seen})`;
             g.lineWidth = (z.look.r * 0.5 * (0.12 + zp.e * 0.88) * (6 - s2)) / 6;
             g.beginPath();
             g.arc(0, 0, zp.r, zp.a - (len * (s2 + 1)) / 6, zp.a - (len * s2) / 6);
