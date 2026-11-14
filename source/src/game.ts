@@ -9,7 +9,47 @@ const MAX_SPEED = 360;
 const PULL_R = 260; // gravity starts tugging here
 const HORIZON_R = 44; // cross this and you change dimension
 const FLIP_TIME = 1.4;
-const BANG_TIME = 4.5; // seconds from the first click to a galaxy you can fly in (10.5 until v45)
+const BANG_TIME = 9; // seconds from the first click to a galaxy you can fly in (4.5 in v46 to v57); a click fast-forwards it
+const BANG_SKIP = 6; // how much faster the opening runs once someone clicks to skip ahead
+const PLANETS_AT = 0.6; // fraction of the opening that passes before the planets start to form
+const smooth = (a: number, b: number, x: number) => {
+  const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return u * u * (3 - 2 * u);
+};
+/** The opening follows the real order of events; each caption shows from its start until the next one. */
+const EPOCHS: [number, string, string][] = [
+  [0, 't = 10⁻³² s', 'inflation'],
+  [0.05, 't = 380,000 yr', 'first light'],
+  [0.3, 't = 10 million yr', 'dark ages'],
+  [0.38, 't = 200 million yr', 'first stars'],
+  [0.5, 't = 1 billion yr', 'galaxies form'],
+  [0.68, 't = 9.2 billion yr', 'planets form'],
+  [0.95, 't = 13.8 billion yr', 'now'],
+];
+/** Blackbody-ish cooling from white-hot to a dull red: u = 0 is hottest. */
+const COOL: [number, number, number][] = [
+  [255, 253, 248],
+  [255, 232, 170],
+  [255, 156, 64],
+  [226, 58, 30],
+  [110, 8, 18],
+];
+const COOL_LIGHT: [number, number, number][] = [
+  [255, 255, 255],
+  [255, 238, 204],
+  [250, 204, 172],
+  [238, 176, 172],
+  [236, 170, 176],
+];
+const cool = (u: number, light: boolean) => {
+  const stops = light ? COOL_LIGHT : COOL;
+  const x = Math.min(0.9999, Math.max(0, u)) * (stops.length - 1);
+  const i = Math.floor(x);
+  const f = x - i;
+  const a = stops[i];
+  const b = stops[i + 1];
+  return `${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)}`;
+};
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const ease = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
 
@@ -44,6 +84,9 @@ export class Game {
   // void: empty space behind the title · bang: the galaxy forms · live: playable
   private phase: 'void' | 'bang' | 'live' = 'void';
   private bangT = 0;
+  private bangRate = 1;
+  private coarse = matchMedia('(pointer: coarse)').matches;
+  private mottle: HTMLCanvasElement | null = null;
   private flip: { t: number; switched: boolean; angle: number } | null = null;
   private bg: { x: number; y: number; s: number; a: number; p: number; layer: number }[] = [];
 
@@ -182,6 +225,7 @@ export class Game {
     if (this.reducedMotion) return this.reveal();
     this.phase = 'bang';
     this.bangT = 0;
+    this.bangRate = 1;
     this.overview = true;
     this.zoomTarget = this.cam.zoom = this.overviewZoom();
     this.cam.x = this.cam.y = 0;
@@ -197,27 +241,37 @@ export class Game {
     this.ev.onReady();
   }
   /**
-   * Where a planet is drawn right now. During the big bang each planet is flung out onto its own
-   * circular orbit, laps the black hole (inner orbits faster, roughly Keplerian), then slows and
-   * locks into its place on the golden spiral.
+   * Where a planet is drawn right now. Planets come late: once the disc exists, each one gathers
+   * out of it near its own orbit, laps the black hole (inner orbits faster, roughly Keplerian),
+   * then slows and locks into its place on the golden spiral.
    */
   private zpos(z: Zone, i: number) {
     if (this.phase === 'live') return { x: z.x, y: z.y, e: 1, r: 0, a: 0, w: 0, hot: 0 };
     if (this.phase === 'void') return { x: 0, y: 0, e: 0, r: 0, a: 0, w: 0, hot: 0 };
-    const k = this.bangT / BANG_TIME;
-    // every planet is flung out of the singularity with the rest of the matter and accretes as it flies
-    const e = ease((k - 0.005) / 0.55);
+    const k = this.planetK();
+    if (k <= 0) return { x: 0, y: 0, e: 0, r: 0, a: 0, w: 0, hot: 0 };
+    // each planet accretes out of the disc: it grows from a speck and drifts out a little as it gathers mass
+    const e = ease((k - i * 0.025) / 0.4);
     const rf = Math.hypot(z.x, z.y);
     const af = Math.atan2(z.y, z.x);
-    const r = rf * (1 - Math.exp(-k * (4.2 + (i % 3) * 0.6))) / (1 - Math.exp(-(4.2 + (i % 3) * 0.6)));
+    const r = rf * (0.84 + 0.16 * ease(k / 0.8));
     const turns = 1.15 * Math.pow(zones[0] ? Math.hypot(zones[0].x, zones[0].y) / rf : 1, 0.75);
-    const u = Math.min(1, Math.max(0, k / 0.88));
+    const u = Math.min(1, Math.max(0, k / 0.92));
     // planets are born spread by the golden angle (≈137.5°), then each laps at its own speed
     const lag = (turns * Math.PI * 2 + i * GOLDEN_ANGLE) * (1 - u) * (1 - u);
     const a = af - lag;
     const w = turns * Math.PI * 4 * (1 - u); // angular speed, for the motion trail
-    const hot = Math.exp(-k * 5.5); // white-hot at birth, cooling into its own colours
+    const hot = Math.exp(-k * 5); // white-hot at birth, cooling into its own colours
     return { x: Math.cos(a) * r, y: Math.sin(a) * r, e, r, a, w, hot };
+  }
+  /** Where the waiting point sits on the title screen: centred on big screens, clear of the title text on small ones. */
+  private singularity() {
+    const { W, H } = this;
+    return { cx: H < 520 ? W * 0.82 : W / 2, cy: H < 520 ? H * 0.3 : W < 700 ? H * 0.2 : H / 2 };
+  }
+  /** How far along planet formation is, 0 to 1. Nothing forms until the disc has gathered. */
+  private planetK() {
+    return Math.min(1, Math.max(0, (this.bangT / BANG_TIME - PLANETS_AT) / (1 - PLANETS_AT)));
   }
   /**
    * The early universe: a hot cloud of matter flung out from the singularity. It slows under drag,
@@ -237,8 +291,10 @@ export class Game {
         this.debris.push({ a, rf, s: 1.5 + rnd() * 4, d: 0.6 + rnd() * 0.8 });
       }
     }
-    const fade = 1 - ease((k - 0.45) / 0.4);
+    // hidden inside the glow at first, dim through the dark ages, gone once the disc has gathered it up
+    const fade = smooth(0.1, 0.26, k) * (1 - smooth(0.52, 0.8, k));
     if (fade <= 0) return;
+    const born = smooth(0.36, 0.5, k); // the first stars light the gas back up
     const prev = g.globalCompositeOperation;
     if (!this.light) g.globalCompositeOperation = 'lighter';
     for (const p of this.debris) {
@@ -250,12 +306,12 @@ export class Game {
       const a = p.a - (1 - k) * 1.2 + spin - 2.4 * Math.pow(400 / Math.max(80, p.rf), 0.6);
       const x = Math.cos(a) * r;
       const y = Math.sin(a) * r;
-      // blackbody-ish cooling: white-hot → blue → amber
-      const T = Math.exp(-k * 4.2 * p.d);
-      const col = this.light
-        ? T > 0.5 ? '255,214,170' : T > 0.2 ? '170,160,230' : '236,160,170'
-        : T > 0.5 ? '255,250,240' : T > 0.2 ? '170,205,255' : '255,190,130';
-      const al = (0.25 + 0.55 * T) * fade;
+      // cools the way hot matter really does, white to yellow to orange to red; then star birth turns it blue-white
+      const T = Math.exp(-k * 7 * p.d);
+      const col = born > 0.5
+        ? this.light ? '170,160,230' : '176,208,255'
+        : cool(Math.min(0.74, 1 - T), this.light); // never cooler than a dull red-orange, so the gas stays visible
+      const al = (0.5 + 0.34 * T + 0.1 * born) * fade;
       g.fillStyle = `rgba(${col},${al})`;
       const sz = p.s * (1 + T * 1.5);
       g.fillRect(x - sz / 2, y - sz / 2, sz, sz);
@@ -354,6 +410,10 @@ export class Game {
     });
     c.addEventListener('pointerdown', (e) => {
       if (!this.running) return;
+      if (this.phase === 'bang') {
+        this.bangRate = BANG_SKIP; // impatient? the rest plays in fast-forward
+        return;
+      }
       const p = pos(e);
       const z = this.zoneAt(p.x, p.y);
       if (z) {
@@ -432,7 +492,7 @@ export class Game {
     }
     if (this.phase === 'void') return;
     if (this.phase === 'bang') {
-      this.bangT += dt;
+      this.bangT += dt * this.bangRate;
       if (this.bangT >= BANG_TIME) {
         this.phase = 'live';
         this.setOverview(false); // swoop in to the astronaut
@@ -624,7 +684,15 @@ export class Game {
       const x = (((st.x * W * 1.3 - this.cam.x * par * zoom) % W) + W) % W;
       const y = (((st.y * H * 1.3 - this.cam.y * par * zoom) % H) + H) % H;
       const tw = this.reducedMotion ? 1 : 0.6 + 0.4 * Math.sin(this.time * 1.5 + st.p);
-      g.fillStyle = `rgba(${P.star},${st.a * tw})`;
+      let lit = 1;
+      if (this.phase === 'bang') {
+        // the first stars switch on one at a time, each with a brief flare
+        const at = 0.35 + (st.p / 6) * 0.38;
+        const since = this.bangT / BANG_TIME - at;
+        if (since <= 0) continue;
+        lit = Math.min(1, since / 0.03) * (1 + 1.6 * Math.exp(-since * 45));
+      }
+      g.fillStyle = `rgba(${P.star},${Math.min(1, st.a * tw * lit)})`;
       g.fillRect(x, y, st.s, st.s);
     }
     if (this.shoot && !this.reducedMotion) {
@@ -643,8 +711,7 @@ export class Game {
     if (this.phase === 'void') {
       // before the big bang there is only the singularity: one point, waiting
       // centred on big screens; moved clear of the title text on phones and short landscape screens
-      const cx = H < 520 ? W * 0.82 : W / 2;
-      const cy = H < 520 ? H * 0.3 : W < 700 ? H * 0.2 : H / 2;
+      const { cx, cy } = this.singularity();
       const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(this.time * 1.6);
       const halo = g.createRadialGradient(cx, cy, 0, cx, cy, 46 + pulse * 22);
       halo.addColorStop(0, `${P.gold}${0.5 + pulse * 0.3})`);
@@ -679,21 +746,24 @@ export class Game {
       g.scale(1 + k * 0.5, 1 + k * 0.5);
       g.translate(-this.cam.x, -this.cam.y);
     }
-    const ge = ease((bk - 0.22) / 0.55);
+    const ge = smooth(0.42, 0.78, bk);
     g.save();
     if (!live) {
-      // the disc unfurls from a point, spinning as it grows
+      // the disc gathers out of the gas more or less where it is, winding up as it settles
       g.globalAlpha = ge;
-      g.rotate((1 - ge) * -2.6);
-      g.scale(0.05 + ge * 0.95, 0.05 + ge * 0.95);
+      g.rotate((1 - ge) * -1.5);
+      g.scale(0.8 + ge * 0.2, 0.8 + ge * 0.2);
     }
     g.drawImage(this.light && this.galaxyLight ? this.galaxyLight : this.galaxy, -TEX_WORLD / 2, -TEX_WORLD / 2, TEX_WORLD, TEX_WORLD);
     g.restore();
     if (!live) this.drawDebris(g, bk);
-    g.save();
-    if (!live) g.globalAlpha = ease(bk / 0.18);
-    drawCore(g, t, this.light, this.light && this.coreTexLight ? this.coreTexLight : this.coreTex);
-    g.restore();
+    const coreA = live ? 1 : smooth(0.4, 0.58, bk);
+    if (coreA > 0.01) {
+      g.save();
+      g.globalAlpha = coreA;
+      drawCore(g, t, this.light, this.light && this.coreTexLight ? this.coreTexLight : this.coreTex);
+      g.restore();
+    }
     void CORE_WORLD;
 
     // the route is a golden spiral, gold where you have travelled
@@ -753,7 +823,7 @@ export class Game {
     if (this.W >= 700 || this.overview) g.fillText(`r = φ^(2θ/π)   φ = ${PHI.toFixed(6)}`, lab.x, lab.y - 14 / fz);
     } else {
       // during the big bang each planet laps its own orbit; the golden spiral is drawn in as they settle
-      const settle = ease((bk - 0.72) / 0.24);
+      const settle = ease((this.planetK() - 0.7) / 0.27);
       for (const [i, z] of zones.entries()) {
         const zp = this.zpos(z, i);
         if (zp.e <= 0) continue;
@@ -1014,24 +1084,61 @@ export class Game {
     g.fillStyle = v;
     g.fillRect(0, 0, W, H);
 
-    // the big bang: a white-out and a shockwave rolling outward
+    // the big bang. There is no blast wave, because there is nothing outside it to blast into:
+    // all of space is filled with a white-hot glow that cools through yellow and red until it turns transparent.
     if (!live) {
       const c = this.toScreen(0, 0);
-      const fk = Math.max(0, 1 - bk / 0.12);
-      if (fk > 0) {
-        const fl = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, Math.max(W, H) * (0.1 + bk * 3));
-        fl.addColorStop(0, `rgba(235,252,255,${fk})`);
-        fl.addColorStop(1, `rgba(180,230,240,${fk * 0.6})`);
+      const big = Math.max(W, H);
+      if (bk < 0.045) {
+        // inflation: from a point to everything, almost at once
+        const u = bk / 0.045;
+        const R = big * 1.7 * u * u + 2;
+        const o = this.singularity(); // it bursts out of the very point that was waiting on the title screen
+        const fl = g.createRadialGradient(o.cx, o.cy, 0, o.cx, o.cy, R);
+        fl.addColorStop(0, `rgba(${cool(0, this.light)},1)`);
+        fl.addColorStop(0.72, `rgba(${cool(0, this.light)},1)`);
+        fl.addColorStop(1, `rgba(${cool(0, this.light)},0)`);
         g.fillStyle = fl;
         g.fillRect(0, 0, W, H);
+      } else if (bk < 0.36) {
+        const u = (bk - 0.045) / 0.3; // 0 white-hot, 1 cooled
+        const al = 1 - smooth(0.55, 1, u);
+        const glow = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, big * 0.8);
+        glow.addColorStop(0, `rgba(${cool(u * 0.92, this.light)},${al})`);
+        glow.addColorStop(1, `rgba(${cool(u, this.light)},${al * 0.94})`);
+        g.fillStyle = glow;
+        g.fillRect(0, 0, W, H);
+        // faint hotter and cooler patches, the seeds of everything that forms later; they stretch as space does
+        const m = (this.mottle ??= buildMottle());
+        const ma = al * smooth(0.08, 0.45, u) * (this.light ? 0.5 : 0.8);
+        if (ma > 0.01) {
+          const sz = big * (1.25 + u * 0.55);
+          g.save();
+          g.globalAlpha = ma;
+          g.imageSmoothingEnabled = true;
+          g.imageSmoothingQuality = 'high';
+          g.drawImage(m, c.x - sz / 2, c.y - sz / 2, sz, sz);
+          g.restore();
+        }
       }
-      const ring = bk / 0.3;
-      if (ring < 1) {
-        g.strokeStyle = `rgba(210,245,255,${(1 - ring) * 0.8})`;
-        g.lineWidth = 2 + (1 - ring) * 6;
-        g.beginPath();
-        g.arc(c.x, c.y, ring * Math.max(W, H) * 0.8, 0, Math.PI * 2);
-        g.stroke();
+      // a small clock: where in the real story this moment sits
+      let ei = 0;
+      for (let i = 0; i < EPOCHS.length; i++) if (bk >= EPOCHS[i][0]) ei = i;
+      const [e0, when, what] = EPOCHS[ei];
+      const e1 = ei + 1 < EPOCHS.length ? EPOCHS[ei + 1][0] : 1.01;
+      const ea = Math.min(smooth(e0, e0 + 0.025, bk), 1 - smooth(e1 - 0.025, e1, bk));
+      const onGlow = bk < 0.2 && !this.light; // dark type while the screen is bright
+      const ink = onGlow ? '40,30,24' : P.text;
+      const y = H - (W < 700 ? 148 : 124);
+      g.textAlign = 'center';
+      g.textBaseline = 'alphabetic';
+      g.font = '500 11px "IBM Plex Mono", monospace';
+      g.fillStyle = `rgba(${ink},${0.85 * ea})`;
+      g.fillText(`${when}  ·  ${what}`, W / 2, y);
+      if (this.bangRate === 1 && bk > 0.08 && bk < 0.9) {
+        g.font = '400 10px "IBM Plex Mono", monospace';
+        g.fillStyle = `rgba(${onGlow ? ink : P.dim},${0.6 * smooth(0.08, 0.12, bk) * (1 - smooth(0.84, 0.9, bk))})`;
+        g.fillText(this.coarse ? 'tap to skip ahead' : 'click to skip ahead', W / 2, y + 18);
       }
     }
 
@@ -1057,4 +1164,28 @@ function spaced(g: CanvasRenderingContext2D, text: string, cx: number, y: number
     g.fillText(text, cx + track / 2, y);
     ctx.letterSpacing = '0px';
   } else g.fillText(text, cx, y);
+}
+
+
+/** A fine blotchy texture: slightly hotter and cooler patches in the early glow. */
+function buildMottle() {
+  const N = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = N;
+  const g = c.getContext('2d')!;
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 1500; i++) {
+    const x = rnd() * N;
+    const y = rnd() * N;
+    const r = 2 + rnd() * rnd() * 9;
+    const hot = rnd() < 0.5;
+    const a = 0.08 + rnd() * 0.2;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, hot ? `rgba(255,250,235,${a})` : `rgba(150,10,24,${a * 1.25})`);
+    gr.addColorStop(1, hot ? 'rgba(255,250,235,0)' : 'rgba(150,10,24,0)');
+    g.fillStyle = gr;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  return c;
 }

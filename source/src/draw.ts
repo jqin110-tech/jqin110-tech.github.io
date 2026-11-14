@@ -233,6 +233,7 @@ const JET_LEN = 640;
 
 /** The quasar at the galactic core: dust walls, a face-on disk, a relativistic jet. */
 export function drawCore(g: Ctx, t: number, light: boolean, tex: HTMLCanvasElement) {
+  const base = g.globalAlpha; // the caller may be fading the whole core in
   const ink = light ? '200,140,82' : '230,252,255';
   g.save();
   g.rotate(t * 0.015);
@@ -269,9 +270,9 @@ export function drawCore(g: Ctx, t: number, light: boolean, tex: HTMLCanvasEleme
     g.lineTo(ex, ey);
     g.stroke();
     g.lineWidth = 12;
-    g.globalAlpha = 0.18;
+    g.globalAlpha = base * 0.18;
     g.stroke();
-    g.globalAlpha = 1;
+    g.globalAlpha = base;
   }
   // bright knots travelling up the jet
   for (let i = 0; i < 12; i++) {
