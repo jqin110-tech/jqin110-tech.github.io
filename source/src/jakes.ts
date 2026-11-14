@@ -52,7 +52,7 @@ export const jakes = {
       dates: 'Nov. 2026',
       items: [
         'Designed and directed my portfolio site: a galaxy you can fly through, with my resume and project demos below it',
-        'Built with Claude Code, which wrote the TypeScript; I wrote the specs and tested every build',
+        'Wrote the specs and tested every build; used Claude Code to implement the TypeScript',
       ],
     },
   ],

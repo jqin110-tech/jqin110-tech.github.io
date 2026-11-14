@@ -115,7 +115,7 @@ export const resume = {
         'Ran a 20,000-draw Monte Carlo over the sourced ranges: median 8.7 s (5–95%: 5.1 to 16.2 s), and no loss of consciousness at all in 26.6% of draws, which shows how loosely one study pins the threshold down.',
         'Reported a test the model fails: it predicts waking 0.2 to 1.0 s after release against 3 to 11.5 s observed, and no sourced parameter values close the gap.',
         'Covered it with 80 pytest tests on GitHub Actions, including one that checks the JavaScript copy of the equation in the browser simulator against the Python model.',
-        'Built with Claude Code, which read the sources and wrote most of the code under my rules; I set the question, chose how to handle the missing threshold and approved each stage. Educational model, not medical advice.',
+        'Set the question, chose how to handle the missing threshold and approved each stage; used Claude Code to read the sources and write most of the code under my rules. Educational model, not medical advice.',
       ],
     },
     {
@@ -142,7 +142,7 @@ export const resume = {
         'Designed and directed an explorable galaxy resume: set the concept, look and interactions, and tested every build across 40+ versions.',
         'Placed sections along a logarithmic (golden) spiral with equal arc-length spacing, derived from r = R₀·φ^(−2θ/π).',
         'Runs as one static page drawn on Canvas 2D with no game engine, with keyboard, touch and reduced-motion support.',
-        'Built with Claude Code, which wrote the TypeScript; I wrote the specs, made the design decisions and reviewed every build.',
+        'Wrote the specs, made the design decisions and tested every build; used Claude Code to implement the TypeScript.',
       ],
     },
     {
