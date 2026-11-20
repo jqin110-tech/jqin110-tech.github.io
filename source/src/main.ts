@@ -7,6 +7,7 @@ import { museumScene } from './museum';
 import { cabinScene, lectureScene, observatoryScene, postScene, streetScene } from './places';
 import { mountRoom, roomMarkup, type SceneFactory } from './room';
 import { cvSections, mountCv, projectId, quickResume, siteResume } from './cv';
+import { paintShort, shortPage } from './short';
 import { mountMotion } from './motion';
 
 const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector(sel) as T;
@@ -55,8 +56,9 @@ const canvas = $<HTMLCanvasElement>('#world');
 const titleCard = $('[data-title]');
 const dialog = $<HTMLDialogElement>('#room');
 const quick = $<HTMLDialogElement>('#quick');
-/** A planet page or the quick resume is open over the site. */
-const modalOpen = () => dialog.open || quick.open;
+const short = $<HTMLDialogElement>('#short');
+/** A planet page, the short version or the quick resume is open over the site. */
+const modalOpen = () => dialog.open || quick.open || short.open;
 // declared up here because a link straight to the quick resume opens it before the rest of the page is wired
 let locked = false; // the page is held still while the game is being played
 let touchGuard = false;
@@ -146,6 +148,7 @@ $$('[data-mode]').forEach((b) =>
 $('[data-quick-body]').innerHTML = quickResume();
 function openQuick() {
   if (dialog.open) dialog.close();
+  if (short.open) short.close();
   if (!quick.open) quick.showModal();
   syncTouchGuard();
   quick.querySelector<HTMLElement>('.quick-body')!.scrollTop = 0;
@@ -159,6 +162,41 @@ document.addEventListener('click', (e) => {
   } else if (el.closest('[data-quick-close]') || el === quick) quick.close();
 });
 if (location.hash === '#quick') openQuick();
+
+// ---------- the short version: the whole site on one quiet screen ----------
+$('[data-short-body]').innerHTML = shortPage();
+const shortArt = $<HTMLCanvasElement>('[data-short-art]');
+let shortFrame = 0;
+function paintShortArt(now: number) {
+  shortFrame = 0;
+  if (!short.open) return;
+  paintShort(shortArt, game.art(), now / 1000, reduced.matches);
+  // a slow picture: every third frame is plenty, and a still one if motion is turned down
+  if (!reduced.matches) shortFrame = window.setTimeout(() => requestAnimationFrame(paintShortArt), 50);
+}
+function openShort() {
+  if (dialog.open) dialog.close();
+  if (quick.open) quick.close();
+  if (!short.open) short.showModal();
+  syncTouchGuard();
+  short.querySelector<HTMLElement>('.short-body')!.scrollTop = 0;
+  clearTimeout(shortFrame);
+  requestAnimationFrame(paintShortArt);
+}
+document.addEventListener('click', (e) => {
+  const el = e.target as HTMLElement;
+  if (el.closest('[data-short]')) openShort();
+  else if (el.closest('[data-short-full]')) short.close();
+  else if (el.closest('[data-short-resume]')) openQuick();
+});
+short.addEventListener('close', () => {
+  clearTimeout(shortFrame);
+  syncTouchGuard();
+  if (location.hash === '#short') history.replaceState(null, '', location.pathname + location.search);
+});
+addEventListener('resize', () => short.open && reduced.matches && requestAnimationFrame(paintShortArt));
+if (location.hash === '#short') openShort();
+addEventListener('hashchange', () => location.hash === '#short' && openShort());
 
 // ---------- checklist + planet nav ----------
 function unlocked() {
@@ -456,7 +494,7 @@ function syncTouchGuard() {
 }
 /** The panel under the pointer, if it still has room to scroll the way the gesture is going. */
 function roomToScroll(el: HTMLElement | null, dx: number, dy: number) {
-  const box = el?.closest?.<HTMLElement>('.room-body, .quick-body, .checklist-panel, .travel');
+  const box = el?.closest?.<HTMLElement>('.room-body, .quick-body, .short-body, .checklist-panel, .travel');
   if (!box) return false;
   if (Math.abs(dx) > Math.abs(dy)) {
     return dx > 0 ? box.scrollLeft + box.clientWidth < box.scrollWidth - 1 : box.scrollLeft > 0;
@@ -505,7 +543,7 @@ addEventListener('keydown', (e) => {
     // keys scroll the open page itself, never the page behind it
     const el = e.target as HTMLElement | null;
     if (el?.closest?.('input, textarea, select')) return;
-    const body = quick.open ? quick.querySelector<HTMLElement>('.quick-body')! : dialog.querySelector<HTMLElement>('.room-body')!;
+    const body = short.open ? short.querySelector<HTMLElement>('.short-body')! : quick.open ? quick.querySelector<HTMLElement>('.quick-body')! : dialog.querySelector<HTMLElement>('.room-body')!;
     const page = body.clientHeight * 0.85;
     const step: Record<string, number> = { PageDown: page, PageUp: -page, ArrowDown: 60, ArrowUp: -60, End: 1e6, Home: -1e6 };
     if (e.code === 'Space' && !el?.closest?.('button, a, summary')) step.Space = e.shiftKey ? -page : page;

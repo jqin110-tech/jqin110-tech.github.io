@@ -242,6 +242,20 @@ export class Game {
     if (on) this.ensureLightGalaxy();
     this.render();
   }
+  /** The pictures the galaxy is drawn from, on the side we are on now, for the still on the short page. */
+  art() {
+    if (this.light) this.ensureLightGalaxy();
+    const P = this.pal;
+    return {
+      light: this.light,
+      galaxy: this.light && this.galaxyLight ? this.galaxyLight : this.galaxy,
+      core: this.light && this.coreTexLight ? this.coreTexLight : this.coreTex,
+      sky: this.light ? this.opalSky : null,
+      bg: P.bg,
+      vig0: P.vig0,
+      vig: P.vig,
+    };
+  }
   get isLive() {
     return this.phase === 'live';
   }

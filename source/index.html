@@ -56,7 +56,7 @@
 
       <div class="title-card" data-title>
         <div class="title-top">
-          <button class="quick-tab" data-quick><span>Read too many resumes today, with more to go?</span><b>Quick resume <span aria-hidden="true">→</span></b></button>
+          <button class="quick-tab" data-short><span>Short on time?</span><b>The short version <span aria-hidden="true">→</span></b></button>
           <button class="mode" data-mode role="switch" aria-checked="true" aria-label="Dark mode" title="Dark mode"><span class="mode-label mono">Dark mode</span><span class="mode-track" aria-hidden="true"><i></i></span></button>
         </div>
         <div class="title-inner">
@@ -96,6 +96,8 @@
       </nav>
       <div class="cv-body" data-cv></div>
     </main>
+
+    <dialog id="short" aria-labelledby="short-name"><div class="short-body" data-short-body></div></dialog>
 
     <dialog id="quick" aria-labelledby="quick-name"><div class="quick-body" data-quick-body></div></dialog>
 
