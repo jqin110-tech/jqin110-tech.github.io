@@ -1313,8 +1313,7 @@ body {
 }
 /* The far side of the hole is a white dimension. Everything floating over the galaxy is drawn in indigo ink on pearl glass
    there, with violet as the accent, so it belongs to that sky and not to the paper of the resume. */
-:root.other-side .game-view,
-:root.other-side dialog#short {
+:root.other-side .game-view {
   --void: #e9ebf8;
   --glass: rgba(250, 250, 255, 0.62);
   --glass-2: rgba(252, 252, 255, 0.92);
@@ -4523,6 +4522,31 @@ dialog#room.museum::backdrop {
 }
 
 /* ================= the short version: the whole site on one quiet screen ================= */
+/* A museum at night: a deep blue wall, the colour of the painting's sky. In light mode it is a white gallery wall. */
+dialog#short {
+  --void: #0a1232;
+  --veil: 10, 18, 50;
+  --star: #f3efe2;
+  --dim: #9da6c8;
+  --hair: rgba(210, 222, 255, 0.15);
+  --hair-2: rgba(210, 222, 255, 0.3);
+  --lamp: rgba(255, 240, 200, 0.11);
+  --hang: rgba(0, 0, 0, 0.6);
+  --label: rgba(255, 255, 255, 0.05);
+  color-scheme: dark;
+}
+:root.other-side dialog#short {
+  --void: #f4f3ef;
+  --veil: 244, 243, 239;
+  --star: #171a2c;
+  --dim: #5e6278;
+  --hair: rgba(23, 26, 44, 0.13);
+  --hair-2: rgba(23, 26, 44, 0.3);
+  --lamp: rgba(255, 255, 255, 0.9);
+  --hang: rgba(40, 44, 70, 0.34);
+  --label: #ffffff;
+  color-scheme: light;
+}
 dialog#short {
   width: 100vw;
   max-width: 100vw;
@@ -4567,8 +4591,9 @@ dialog#short::backdrop {
     transform: translateY(10px);
   }
 }
-/* the painting: a small framed picture, and the way into the full site */
+/* the painting: hung on the wall under a lamp, in a black frame, with its label. It is also the way into the full site. */
 .sp-art {
+  position: relative;
   display: block;
   padding: 0;
   border: 0;
@@ -4578,45 +4603,73 @@ dialog#short::backdrop {
   text-align: left;
   cursor: pointer;
 }
+/* the pool of light the lamp throws on the wall */
+.sp-art::before {
+  content: '';
+  position: absolute;
+  inset: -34% -46% -10%;
+  background: radial-gradient(ellipse 50% 56% at 50% 40%, var(--lamp), transparent 100%);
+  pointer-events: none;
+}
 .sp-frame {
+  position: relative;
   display: block;
-  padding: 10px;
-  border: 1px solid var(--hair-2);
-  border-radius: 3px;
-  transition: transform 0.6s var(--spring), border-color 0.3s;
+  padding: 13px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #30323c, #0d0e14 34%, #1c1e27 62%, #07080c);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 0 0 6px #0b0c11,
+    inset 0 0 0 7px rgba(255, 255, 255, 0.12),
+    0 34px 46px -20px var(--hang),
+    0 4px 8px var(--hang);
+  transition: transform 0.6s var(--spring);
 }
 .sp-frame canvas {
   display: block;
   width: 100%;
   aspect-ratio: 4 / 5;
-  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(244, 236, 204, 0.3);
 }
 .sp-art:hover .sp-frame,
 .sp-art:focus-visible .sp-frame {
   transform: scale(1.025);
-  border-color: var(--dim);
 }
 .sp-art:focus-visible {
   outline: none;
 }
+/* the museum label beside the work */
 .sp-plate {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
+  position: relative;
+  display: grid;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 20px;
+  padding: 10px 14px 11px;
+  border: 1px solid var(--hair);
+  border-radius: 2px;
+  background: var(--label);
   color: var(--dim);
-  font: 400 10px/1.4 var(--mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 400 12px/1.45 var(--body);
 }
 .sp-plate b {
+  color: var(--star);
   font-weight: 500;
-  white-space: nowrap;
+}
+.sp-go {
+  margin-top: 5px;
+  font: 500 10px/1.4 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   transition: color 0.2s;
 }
-.sp-art:hover .sp-plate b,
-.sp-art:focus-visible .sp-plate b {
+.sp-art:hover .sp-go,
+.sp-art:focus-visible .sp-go {
   color: var(--star);
+}
+.sp-text {
+  position: relative;
 }
 .sp-text h1 {
   margin: 0 0 16px;
@@ -4657,6 +4710,11 @@ dialog#short::backdrop {
 }
 .sp-work b {
   font-weight: 500;
+}
+.sp-work b i {
+  color: var(--dim);
+  font-style: normal;
+  font-weight: 400;
 }
 .sp-work p {
   grid-column: 1;

@@ -7,7 +7,8 @@ import { museumScene } from './museum';
 import { cabinScene, lectureScene, observatoryScene, postScene, streetScene } from './places';
 import { mountRoom, roomMarkup, type SceneFactory } from './room';
 import { cvSections, mountCv, projectId, quickResume, siteResume } from './cv';
-import { paintShort, shortPage } from './short';
+import { shortPage } from './short';
+import { paintStarry } from './starry';
 import { mountMotion } from './motion';
 
 const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector(sel) as T;
@@ -170,9 +171,18 @@ let shortFrame = 0;
 function paintShortArt(now: number) {
   shortFrame = 0;
   if (!short.open) return;
-  paintShort(shortArt, game.art(), now / 1000, reduced.matches);
+  paintStarry(shortArt, now / 1000, reduced.matches);
   // a slow picture: every third frame is plenty, and a still one if motion is turned down
   if (!reduced.matches) shortFrame = window.setTimeout(() => requestAnimationFrame(paintShortArt), 50);
+}
+/** The plain address (and #short) opens the short version. Any other address goes where it says. */
+const shortFirst = () => location.hash === '' || location.hash === '#short';
+function setHash(hash: string) {
+  try {
+    history.replaceState(null, '', location.pathname + location.search + hash);
+  } catch {
+    /* an embedded page may not be allowed to change its address: nothing depends on it */
+  }
 }
 function openShort() {
   if (dialog.open) dialog.close();
@@ -185,18 +195,22 @@ function openShort() {
 }
 document.addEventListener('click', (e) => {
   const el = e.target as HTMLElement;
-  if (el.closest('[data-short]')) openShort();
-  else if (el.closest('[data-short-full]')) short.close();
+  if (el.closest('[data-short]')) {
+    openShort();
+    setHash('');
+  } else if (el.closest('[data-short-full]')) short.close();
   else if (el.closest('[data-short-resume]')) openQuick();
 });
 short.addEventListener('close', () => {
   clearTimeout(shortFrame);
   syncTouchGuard();
-  if (location.hash === '#short') history.replaceState(null, '', location.pathname + location.search);
+  // the short version is what the plain address opens, so the full site gets an address of its own:
+  // a reload, or a link copied from here, comes back to the galaxy and not to the short page
+  if (shortFirst()) setHash('#play');
 });
 addEventListener('resize', () => short.open && reduced.matches && requestAnimationFrame(paintShortArt));
-if (location.hash === '#short') openShort();
-addEventListener('hashchange', () => location.hash === '#short' && openShort());
+if (shortFirst()) openShort();
+addEventListener('hashchange', () => shortFirst() && openShort());
 
 // ---------- checklist + planet nav ----------
 function unlocked() {
