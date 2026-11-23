@@ -1,11 +1,11 @@
 // The short version of the site: one quiet screen for a reader with thirty seconds.
-// It is drawn like a page from a Paris sketchbook: one wall of a gallery in pen (ink.ts), with one painting of the galaxy
+// It is a page of a sketchbook, spiral binding and all: one wall of a gallery in pencil (ink.ts), with one painting of the galaxy
 // hanging from the picture rail (the door to the full version, painted in starry.ts), its label, the wall text beside it
 // (who Joshua is, three projects, how to reach him), and the rooftops of Paris along the bottom.
 // Every word comes from data.ts, so it can never disagree with the resume.
 import { copyButton } from './copy';
 import { resume } from './data';
-import { inkFrame, inkRule, inkSkyline } from './ink';
+import { inkArrow, inkFrame, inkRule, inkSkyline } from './ink';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
@@ -20,6 +20,9 @@ export function shortPage(rooms: string[]): string {
   const lead = r.summary.replace(/^[^.]*\.\s*/, '');
   const short = (label: string) => (/demo|site/i.test(label) ? 'Live' : 'Code');
   return `
+    <div class="sb">
+    <div class="sb-rings" aria-hidden="true"></div>
+    <div class="sb-page">
     <div class="sp-room">
     <div class="sp">
       <div class="sp-bay sp-bay-art">
@@ -31,9 +34,9 @@ export function shortPage(rooms: string[]): string {
           </div></div>
         </div>
         <button class="sp-plate" data-short-full>
+          ${inkArrow(5)}
           <span><b lang="fr">La Galaxie, la nuit</b></span>
-          <span>The Galaxy at Night, 2026</span>
-          <span>After Van Gogh. Code on canvas, 21,000 strokes.</span>
+          <span>The Galaxy at Night, 2026. After Van Gogh, in code: 21,000 strokes.</span>
           <span class="sp-how">Stir the sky. Each star opens a room, and the black hole opens the galaxy.</span>
           <span class="sp-go">Step inside <span aria-hidden="true">→</span></span>
         </button>
@@ -66,5 +69,7 @@ export function shortPage(rooms: string[]): string {
       </div>
     </div>
     </div>
-    <div class="sp-roofs" aria-hidden="true">${inkSkyline(1889)}</div>`;
+    <div class="sp-roofs" aria-hidden="true">${inkSkyline(1889)}</div>
+    </div>
+    </div>`;
 }

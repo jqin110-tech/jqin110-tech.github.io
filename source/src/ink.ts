@@ -461,3 +461,20 @@ export function inkSkyline(seed: number): string {
     <path d="${pen.d}"/><path d="${fine.d}"/>
   </svg>`;
 }
+
+/** A quick curved arrow, the kind drawn beside a note to say "this one". It points up and to the right. */
+export function inkArrow(seed: number): string {
+  const pen = new Pen(seed);
+  pen.stroke(
+    [
+      [8, 66],
+      [5, 44],
+      [14, 24],
+      [36, 9],
+    ],
+    2.4,
+    0.8,
+  );
+  pen.line(36, 9, 22, 8, 2.2, 0, 0.3).line(36, 9, 30, 22, 2.2, 0, 0.3);
+  return `<svg class="ink ink-arrow" viewBox="0 0 44 72" aria-hidden="true" focusable="false"><path d="${pen.d}"/></svg>`;
+}
