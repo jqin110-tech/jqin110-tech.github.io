@@ -8,7 +8,7 @@ import { cabinScene, lectureScene, observatoryScene, postScene, streetScene } fr
 import { mountRoom, roomMarkup, type SceneFactory } from './room';
 import { cvSections, mountCv, projectId, quickResume, siteResume } from './cv';
 import { shortPage } from './short';
-import { paintStarry } from './starry';
+import { mountStarry, STAR_ZONES } from './starry';
 import { mountMotion } from './motion';
 
 const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector(sel) as T;
@@ -165,15 +165,30 @@ document.addEventListener('click', (e) => {
 if (location.hash === '#quick') openQuick();
 
 // ---------- the short version: the whole site on one quiet screen ----------
-$('[data-short-body]').innerHTML = shortPage();
+const starZones = STAR_ZONES.map((id) => zones.find((z) => z.id === id)!);
+$('[data-short-body]').innerHTML = shortPage(starZones.map((z) => z.title));
 const shortArt = $<HTMLCanvasElement>('[data-short-art]');
+const shortTip = $('[data-short-tip]');
 let shortFrame = 0;
+const paintStarry = mountStarry(shortArt, {
+  onHover(what, x, y) {
+    shortTip.classList.toggle('show', what !== null);
+    if (what === null) return;
+    shortTip.textContent = what === -1 ? 'Enter the galaxy' : starZones[what].title;
+    shortTip.style.left = `${x}px`;
+    shortTip.style.top = `${y}px`;
+  },
+  onStar: (i) => openRoom(starZones[i]),
+  onHole: () => short.close(),
+  // with motion turned down nothing repaints on its own, so a touch asks for one frame
+  invalidate: () => reduced.matches && short.open && !shortFrame && (shortFrame = requestAnimationFrame(paintShortArt)),
+});
 function paintShortArt(now: number) {
   shortFrame = 0;
   if (!short.open) return;
-  paintStarry(shortArt, now / 1000, reduced.matches);
-  // a slow picture: every third frame is plenty, and a still one if motion is turned down
-  if (!reduced.matches) shortFrame = window.setTimeout(() => requestAnimationFrame(paintShortArt), 50);
+  // a room opened from a star sits on top: the painting waits underneath
+  if (!dialog.open) paintStarry(now / 1000, reduced.matches);
+  if (!reduced.matches) shortFrame = requestAnimationFrame(paintShortArt);
 }
 /** The plain address (and #short) opens the short version. Any other address goes where it says. */
 const shortFirst = () => location.hash === '' || location.hash === '#short';
@@ -190,8 +205,8 @@ function openShort() {
   if (!short.open) short.showModal();
   syncTouchGuard();
   short.querySelector<HTMLElement>('.short-body')!.scrollTop = 0;
-  clearTimeout(shortFrame);
-  requestAnimationFrame(paintShortArt);
+  cancelAnimationFrame(shortFrame);
+  shortFrame = requestAnimationFrame(paintShortArt);
 }
 document.addEventListener('click', (e) => {
   const el = e.target as HTMLElement;
@@ -200,15 +215,17 @@ document.addEventListener('click', (e) => {
     setHash('');
   } else if (el.closest('[data-short-full]')) short.close();
   else if (el.closest('[data-short-resume]')) openQuick();
+  else if (el.closest('[data-short-star]')) openRoom(starZones[Number(el.closest<HTMLElement>('[data-short-star]')!.dataset.shortStar)]);
 });
 short.addEventListener('close', () => {
-  clearTimeout(shortFrame);
+  cancelAnimationFrame(shortFrame);
+  shortFrame = 0;
   syncTouchGuard();
   // the short version is what the plain address opens, so the full site gets an address of its own:
   // a reload, or a link copied from here, comes back to the galaxy and not to the short page
   if (shortFirst()) setHash('#play');
 });
-addEventListener('resize', () => short.open && reduced.matches && requestAnimationFrame(paintShortArt));
+addEventListener('resize', () => short.open && reduced.matches && !shortFrame && (shortFrame = requestAnimationFrame(paintShortArt)));
 if (shortFirst()) openShort();
 addEventListener('hashchange', () => shortFirst() && openShort());
 
@@ -576,6 +593,7 @@ let scrolled = 0; // 0 = galaxy fills the screen, 1 = scrolled a full screen dow
 const smooth = () => (reduced.matches ? 'auto' : 'smooth') as ScrollBehavior;
 function toResume() {
   if (dialog.open) dialog.close();
+  if (short.open) short.close();
   goingDown = true;
   setTimeout(() => (goingDown = false), 1600);
   syncLock();
@@ -585,6 +603,7 @@ function toResume() {
 /** Leave the galaxy for one project's room on the page below. */
 function toProject(name: string) {
   if (dialog.open) dialog.close();
+  if (short.open) short.close();
   goingDown = true;
   setTimeout(() => (goingDown = false), 1600);
   syncLock();

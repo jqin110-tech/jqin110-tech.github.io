@@ -10,19 +10,35 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 /** The three projects shown, strongest first. The rest live in the full version. */
 const PICKS = ['Tickerchatter', 'Gravity Simulator', 'Backtester'];
 
-export function shortPage(): string {
+/** rooms: the names of the rooms the six stars open, in the order the painting numbers its stars. */
+export function shortPage(rooms: string[]): string {
   const r = resume;
   const picks = PICKS.map((n) => r.projects.find((p) => p.name === n)!);
   // the summary's first sentence repeats the line above it, so only what follows is used
   const lead = r.summary.replace(/^[^.]*\.\s*/, '');
   const short = (label: string) => (/demo|site/i.test(label) ? 'Live' : 'Code');
   return `
+    <div class="sp-room">
     <div class="sp">
-      <button class="sp-art" data-short-full aria-label="Open the full portfolio: the galaxy you can fly through">
-        <span class="sp-frame"><canvas data-short-art></canvas></span>
-        <span class="sp-plate"><span><b>The Galaxy at Night</b>, 2026</span><span>After Van Gogh. Code on canvas, 21,000 strokes.</span><span class="sp-go">Step inside <span aria-hidden="true">→</span></span></span>
-      </button>
-      <div class="sp-text">
+      <div class="sp-bay sp-bay-art">
+        <div class="sp-hang">
+          <i class="sp-lamp" aria-hidden="true"></i>
+          <div class="sp-frame"><div class="sp-f1"><div class="sp-fc"><div class="sp-f2"><i class="sp-ros"></i><i class="sp-ros"></i><i class="sp-ros"></i><i class="sp-ros"></i><div class="sp-f3"><div class="sp-f4"><div class="sp-f5">
+            <canvas data-short-art role="img" aria-label="A painting of the galaxy in the manner of Van Gogh's Starry Night: a black hole in a swirling sky, six haloed stars, and a small astronaut on a hill. Each star opens a room and the black hole opens the galaxy."></canvas>
+            <i class="sp-sheen" aria-hidden="true"></i>
+            <span class="sp-tip mono" data-short-tip aria-hidden="true"></span>
+          </div></div></div></div></div></div></div>
+        </div>
+        <button class="sp-plate" data-short-full>
+          <span><b lang="fr">La Galaxie, la nuit</b></span>
+          <span>The Galaxy at Night, 2026</span>
+          <span>After Van Gogh. Code on canvas, 21,000 strokes.</span>
+          <span class="sp-how">Stir the sky. Each star opens a room, and the black hole opens the galaxy.</span>
+          <span class="sp-go">Step inside <span aria-hidden="true">→</span></span>
+        </button>
+        <ul class="sr-only" aria-label="Rooms">${rooms.map((t, i) => `<li><button data-short-star="${i}">${esc(t)}</button></li>`).join('')}</ul>
+      </div>
+      <div class="sp-bay sp-text">
         <h1 id="short-name">${esc(r.name)}</h1>
         <p class="sp-sub">${esc(r.education.program.replace(', Co-op', ' (Co-op)'))}, ${esc(r.education.school)}. Graduating ${esc(r.education.grad)}.</p>
         <p class="sp-lead">${esc(lead)}</p>
@@ -47,5 +63,7 @@ export function shortPage(): string {
           <button class="sp-more" data-short-resume>One-page resume</button>
         </p>
       </div>
-    </div>`;
+    </div>
+    </div>
+    <div class="sp-floor" aria-hidden="true"></div>`;
 }

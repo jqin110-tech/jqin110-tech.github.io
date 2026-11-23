@@ -251,71 +251,285 @@ function build(): HTMLCanvasElement {
   return c;
 }
 
-/** A few strokes of light that keep moving with the wind, so the sky is never quite still. */
-const gusts: { x: number; y: number; age: number; life: number; shade: number }[] = [];
-let lastT = 0;
-const gustRand = rng(7);
-function reseed(q: { x: number; y: number; age: number; life: number; shade: number }, fresh: boolean) {
-  q.x = gustRand() * PW;
-  q.y = gustRand() * 800;
-  q.life = 3 + gustRand() * 4;
-  q.age = fresh ? gustRand() * q.life : 0;
-  q.shade = gustRand();
+/** What the painting tells the page: a star or the hole was pointed at or chosen. Stars are numbered as in STARS. */
+export interface StarryEvents {
+  /** The pointer is over star i, over the hole (-1), or over neither (null). x, y are CSS pixels inside the canvas. */
+  onHover(what: number | null, x: number, y: number): void;
+  onStar(i: number): void;
+  onHole(): void;
+  /** Something changed while the sky is being kept still (reduced motion): please paint once. */
+  invalidate(): void;
+}
+/** The planets the stars stand for, in the order of STARS. */
+export const STAR_ZONES = ['campus', 'workshop', 'tower', 'observatory', 'signal', 'brief'] as const;
+
+interface Gust {
+  x: number;
+  y: number;
+  age: number;
+  life: number;
+  shade: number;
 }
 
 /**
- * Draws the painting into the frame. t is in seconds; calm (reduced motion) leaves the sky still.
- * The astronaut is drawn last, in whole device pixels, standing on the hill.
+ * Hangs the painting in a canvas and makes it answer to the visitor:
+ * the sky stirs round the pointer, a drag leaves fresh paint, a click on open sky starts a new swirl,
+ * the stars flare when pointed at (each one is a room), the hole is the way into the galaxy,
+ * and the astronaut walks along the hill to stand under the pointer.
+ * Returns the function that paints one frame. t is in seconds; calm (reduced motion) keeps the sky still.
  */
-export function paintStarry(canvas: HTMLCanvasElement, t: number, calm: boolean) {
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  if (!w || !h) return;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-  }
-  base ??= build();
-  const g = canvas.getContext('2d')!;
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.imageSmoothingQuality = 'high';
-  g.drawImage(base, 0, 0, canvas.width, canvas.height);
-  const k = canvas.width / PW;
-  if (!calm) {
-    if (!gusts.length) for (let i = 0; i < 150; i++) reseed((gusts[i] = { x: 0, y: 0, age: 0, life: 1, shade: 0 }), true);
+export function mountStarry(canvas: HTMLCanvasElement, ev: StarryEvents): (t: number, calm: boolean) => void {
+  const rand = rng(7);
+  const gusts: Gust[] = [];
+  const fresh: { x: number; y: number; dx: number; dy: number; age: number; life: number; shade: number }[] = [];
+  const bursts: { x: number; y: number; age: number }[] = [];
+  const flare = STARS.map(() => 0);
+  let holeFlare = 0;
+  const ptr = { x: 0, y: 0, on: false, lx: 0, ly: 0 };
+  let hover: number | null = null;
+  let lastT = 0;
+  let now = 0;
+  let walkX = 0.27 * PW;
+  let face = 1;
+
+  const toPaint = (e: PointerEvent | MouseEvent) => {
+    const r = canvas.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * PW, y: ((e.clientY - r.top) / r.height) * PH, cx: e.clientX - r.left, cy: e.clientY - r.top };
+  };
+  /** Star index, -1 for the hole, or null for open sky or ground. */
+  const hit = (x: number, y: number): number | null => {
+    if (Math.hypot(x - HOLE.x, y - HOLE.y) < HOLE.r * 1.9) return -1;
+    for (let i = 0; i < STARS.length; i++) if (Math.hypot(x - STARS[i].x, y - STARS[i].y) < STARS[i].r * 1.05) return i;
+    return null;
+  };
+  const point = (e: PointerEvent) => {
+    const p = toPaint(e);
+    if (ptr.on && y_ok(p.y, p.x)) {
+      // a moving pointer leaves fresh paint behind it
+      const dx = p.x - ptr.lx;
+      const dy = p.y - ptr.ly;
+      const d = Math.hypot(dx, dy);
+      if (d > 11) {
+        fresh.push({ x: p.x, y: p.y, dx: dx / d, dy: dy / d, age: 0, life: 2.2 + rand() * 1.4, shade: rand() });
+        if (fresh.length > 150) fresh.shift();
+        ptr.lx = p.x;
+        ptr.ly = p.y;
+      }
+    } else {
+      ptr.lx = p.x;
+      ptr.ly = p.y;
+    }
+    ptr.x = p.x;
+    ptr.y = p.y;
+    ptr.on = true;
+    const h = hit(p.x, p.y);
+    if (h !== hover) {
+      hover = h;
+      canvas.style.cursor = h === null ? 'crosshair' : 'pointer';
+    }
+    ev.onHover(h, p.cx, p.cy);
+    ev.invalidate();
+  };
+  const y_ok = (y: number, x: number) => y < hillY(x) - 10;
+  const leave = () => {
+    ptr.on = false;
+    hover = null;
+    ev.onHover(null, 0, 0);
+    ev.invalidate();
+  };
+  canvas.addEventListener('pointermove', point);
+  canvas.addEventListener('pointerdown', point);
+  canvas.addEventListener('pointerleave', leave);
+  canvas.addEventListener('pointercancel', leave);
+  canvas.addEventListener('pointerup', (e) => e.pointerType !== 'mouse' && window.setTimeout(leave, 900));
+  canvas.addEventListener('click', (e) => {
+    const p = toPaint(e);
+    const h = hit(p.x, p.y);
+    if (h === -1) ev.onHole();
+    else if (h !== null) {
+      flare[h] = 1.6;
+      ev.onStar(h);
+    } else if (y_ok(p.y, p.x)) {
+      // open sky: a new swirl is born where it was touched, turns for a few seconds and melts back into the paint
+      bursts.push({ x: p.x, y: p.y, age: 0 });
+      if (bursts.length > 6) bursts.shift();
+    } else {
+      // the ground: the astronaut walks over to where it was touched
+      ptr.x = p.x;
+      ptr.on = true;
+    }
+    ev.invalidate();
+  });
+
+  /** The wind as the moving strokes feel it: the painted wind, bent round the pointer and round each new swirl. */
+  const stirred = (x: number, y: number): [number, number] => {
+    let [vx, vy] = wind(x, y);
+    const bend = (cx: number, cy: number, r: number, strength: number) => {
+      const dx = x - cx;
+      const dy = y - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      const w = Math.exp(-Math.pow(d / r, 2)) * strength;
+      vx = vx * (1 - w) + ((-dy / d) * 1 - (dx / d) * 0.25) * w;
+      vy = vy * (1 - w) + ((dx / d) * 1 - (dy / d) * 0.25) * w;
+    };
+    if (ptr.on) bend(ptr.x, ptr.y, 120, 0.95);
+    for (const b of bursts) bend(b.x, b.y, 90, Math.sin(Math.min(1, b.age / 3.6) * Math.PI));
+    const m = Math.hypot(vx, vy) || 1;
+    return [vx / m, vy / m];
+  };
+  const reseed = (q: Gust, first: boolean) => {
+    // while the pointer is in the sky, half of the new strokes gather round it
+    if (!first && ptr.on && y_ok(ptr.y, ptr.x) && rand() < 0.55) {
+      const a = rand() * Math.PI * 2;
+      const d = 20 + rand() * 110;
+      q.x = ptr.x + Math.cos(a) * d;
+      q.y = ptr.y + Math.sin(a) * d;
+      q.life = 1.6 + rand() * 2;
+    } else {
+      q.x = rand() * PW;
+      q.y = rand() * 800;
+      q.life = 3 + rand() * 4;
+    }
+    q.age = first ? rand() * q.life : 0;
+    q.shade = rand();
+  };
+
+  return (t: number, calm: boolean) => {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    base ??= build();
+    const g = canvas.getContext('2d')!;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(base, 0, 0, canvas.width, canvas.height);
+    const k = canvas.width / PW;
     const dt = Math.min(0.1, Math.max(0, t - lastT));
     lastT = t;
+    now += dt;
     g.lineCap = 'round';
-    for (const q of gusts) {
-      q.age += dt;
-      const [vx, vy] = wind(q.x, q.y);
-      q.x += vx * 26 * dt;
-      q.y += vy * 26 * dt;
-      if (q.age > q.life || q.x < -20 || q.x > PW + 20 || q.y < -20 || q.y > hillY(q.x) - 14) {
-        reseed(q, false);
+    g.lineJoin = 'round';
+    const rgba = (c: RGB, a: number) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${Math.max(0, Math.min(1, a))})`;
+    /** An arc of paint round a centre, in painting units. */
+    const ring = (cx: number, cy: number, r: number, a0: number, len: number, col: RGB, alpha: number, wd: number) => {
+      g.beginPath();
+      g.arc(cx * k, cy * k, Math.max(1, r) * k, a0, a0 + len);
+      g.strokeStyle = rgba(col, alpha);
+      g.lineWidth = wd * k;
+      g.stroke();
+    };
+
+    if (!calm) {
+      // the wind: strokes of light that keep moving, so the sky is never quite still
+      if (!gusts.length) for (let i = 0; i < 170; i++) reseed((gusts[i] = { x: 0, y: 0, age: 0, life: 1, shade: 0 }), true);
+      for (const q of gusts) {
+        q.age += dt;
+        const [vx, vy] = stirred(q.x, q.y);
+        const near = ptr.on ? Math.exp(-Math.pow(Math.hypot(q.x - ptr.x, q.y - ptr.y) / 130, 2)) : 0;
+        const speed = 26 + near * 70;
+        q.x += vx * speed * dt;
+        q.y += vy * speed * dt;
+        if (q.age > q.life || q.x < -20 || q.x > PW + 20 || q.y < -20 || q.y > hillY(q.x) - 14) {
+          reseed(q, false);
+          continue;
+        }
+        // a short curved stroke trailing behind the point
+        let px = q.x;
+        let py = q.y;
+        g.beginPath();
+        g.moveTo(px * k, py * k);
+        for (let s = 0; s < 4; s++) {
+          const [ux, uy] = stirred(px, py);
+          px -= ux * 5;
+          py -= uy * 5;
+          g.lineTo(px * k, py * k);
+        }
+        const c = q.shade < 0.25 ? LEMON : q.shade < 0.6 ? SKY[7] : SKY[6];
+        g.strokeStyle = rgba(c, Math.sin((q.age / q.life) * Math.PI) * (0.5 + near * 0.4));
+        g.lineWidth = (3 + q.shade * 2.4) * k;
+        g.stroke();
+      }
+      // every star turns slowly on its own
+      for (let i = 0; i < STARS.length; i++) {
+        const s = STARS[i];
+        for (let j = 0; j < 5; j++) ring(s.x, s.y, s.r * (0.34 + j * 0.13), now * (0.5 - j * 0.06) + j * 1.9 + i, 0.9, mix(CREAM, s.tint, 0.3), 0.3, 3.4);
+      }
+    }
+    // fresh paint left by the pointer: it drifts with the wind and sinks back into the picture
+    for (let i = fresh.length - 1; i >= 0; i--) {
+      const f = fresh[i];
+      f.age += dt;
+      if (f.age > f.life) {
+        fresh.splice(i, 1);
         continue;
       }
-      // a short curved stroke trailing behind the point
-      let px = q.x;
-      let py = q.y;
-      g.beginPath();
-      g.moveTo(px * k, py * k);
-      for (let s = 0; s < 4; s++) {
-        const [ux, uy] = wind(px, py);
-        px -= ux * 5;
-        py -= uy * 5;
-        g.lineTo(px * k, py * k);
-      }
-      const c = q.shade < 0.25 ? LEMON : q.shade < 0.6 ? SKY[7] : SKY[6];
-      g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${Math.sin((q.age / q.life) * Math.PI) * 0.5})`;
-      g.lineWidth = (3 + q.shade * 2.4) * k;
-      g.stroke();
+      const [vx, vy] = wind(f.x, f.y);
+      f.x += vx * 9 * dt;
+      f.y += vy * 9 * dt;
+      const a = Math.pow(1 - f.age / f.life, 1.3);
+      const c = f.shade < 0.4 ? CREAM : f.shade < 0.75 ? LEMON : SKY[7];
+      const bow = (f.shade - 0.5) * 7;
+      const line = (ox: number, oy: number) => {
+        g.beginPath();
+        g.moveTo((f.x - f.dx * 12 + ox) * k, (f.y - f.dy * 12 + oy) * k);
+        g.quadraticCurveTo((f.x - f.dy * bow + ox) * k, (f.y + f.dx * bow + oy) * k, (f.x + f.dx * 12 + ox) * k, (f.y + f.dy * 12 + oy) * k);
+        g.stroke();
+      };
+      g.lineWidth = (4 + f.shade * 2.5) * k;
+      g.strokeStyle = rgba(mix(c, SKY[2], 0.5), a * 0.8);
+      line(0.8, 1.3);
+      g.strokeStyle = rgba(c, a * 0.95);
+      line(0, 0);
     }
-  }
-  // the astronaut, feet on the hill, looking up at it all
-  const px = Math.max(2, Math.round(canvas.width / 150));
-  const ax = Math.round(canvas.width * 0.27);
-  const ground = hillY(0.27 * PW) * k;
-  drawAstronaut(g, ax, Math.round(ground - (ASTRO.h - ASTRO.ay - 1) * px), px, t, 1, 0, true);
+    // new swirls: rings of paint that open out, turn, and fade
+    for (let i = bursts.length - 1; i >= 0; i--) {
+      const b = bursts[i];
+      b.age += calm ? 0.6 : dt;
+      if (b.age > 3.6) {
+        bursts.splice(i, 1);
+        continue;
+      }
+      const u = b.age / 3.6;
+      const a = Math.sin(u * Math.PI);
+      for (let j = 0; j < 22; j++) {
+        const r = (6 + j * 3.1) * (0.35 + u * 1.1);
+        const c = j < 5 ? CREAM : j < 12 ? LEMON : j < 17 ? SAGE : SKY[6];
+        ring(b.x, b.y, r, j * 2.4 + b.age * (2.6 - j * 0.07), 1.1 + (j % 3) * 0.3, c, a * (1 - j / 30), 3.6);
+      }
+    }
+    // the stars and the hole answer to being pointed at
+    for (let i = 0; i < STARS.length; i++) {
+      flare[i] += ((hover === i ? 1 : 0) - flare[i]) * Math.min(1, (calm ? 1 : dt * 7));
+      const f = Math.min(1, flare[i]);
+      if (f < 0.02) continue;
+      const s = STARS[i];
+      const glow = g.createRadialGradient(s.x * k, s.y * k, 0, s.x * k, s.y * k, s.r * 1.5 * k);
+      glow.addColorStop(0, rgba(CREAM, 0.5 * f));
+      glow.addColorStop(1, rgba(CREAM, 0));
+      g.fillStyle = glow;
+      g.fillRect((s.x - s.r * 1.5) * k, (s.y - s.r * 1.5) * k, s.r * 3 * k, s.r * 3 * k);
+      for (let j = 0; j < 16; j++) ring(s.x, s.y, s.r * (0.25 + j * 0.068), now * (2.4 - j * 0.1) + j * 2.1, 0.8 + (j % 3) * 0.25, j % 3 ? mix(CREAM, s.tint, 0.35) : LEMON, f * 0.85, 3.8);
+    }
+    holeFlare += ((hover === -1 ? 1 : 0) - holeFlare) * Math.min(1, calm ? 1 : dt * 7);
+    if (holeFlare > 0.02) {
+      for (let j = 0; j < 18; j++) ring(HOLE.x, HOLE.y, HOLE.r * (1.08 + j * 0.05), now * (2.2 - j * 0.08) + j * 1.7, 0.7 + (j % 3) * 0.25, j % 2 ? CREAM : LEMON, holeFlare * 0.85, 3.6);
+    }
+
+    // the astronaut walks along the hill to stand under the pointer, and looks up at it all
+    const want = ptr.on ? Math.min(PW - 60, Math.max(60, ptr.x)) : walkX;
+    const gap = want - walkX;
+    const moving = Math.abs(gap) > 3 && !calm;
+    if (moving) {
+      face = gap > 0 ? 1 : -1;
+      walkX += face * Math.min(Math.abs(gap), 150 * dt);
+    } else if (calm && ptr.on) walkX = want;
+    const px = Math.max(2, Math.round(canvas.width / 150));
+    const hop = moving ? Math.abs(Math.sin(now * 11)) * 5 : 0;
+    drawAstronaut(g, Math.round(walkX * k), Math.round((hillY(walkX) - hop) * k - (ASTRO.h - ASTRO.ay - 1) * px), px, t, face, 0, !moving);
+  };
 }

@@ -4521,30 +4521,50 @@ dialog#room.museum::backdrop {
   }
 }
 
-/* ================= the short version: the whole site on one quiet screen ================= */
-/* A museum at night: a deep blue wall, the colour of the painting's sky. In light mode it is a white gallery wall. */
+/* ================= the short version: one room of a Paris museum ================= */
+/* By night it is the deep blue room where the Louvre hangs its most famous painting; in light mode, an ivory gallery.
+   A panelled wall, a gilded frame under a picture light, a museum label, and a chevron parquet floor. */
 dialog#short {
-  --void: #0a1232;
-  --veil: 10, 18, 50;
+  --void: #0b1436;
+  --wall-2: #101c48;
+  --veil: 11, 20, 54;
   --star: #f3efe2;
-  --dim: #9da6c8;
-  --hair: rgba(210, 222, 255, 0.15);
-  --hair-2: rgba(210, 222, 255, 0.3);
-  --lamp: rgba(255, 240, 200, 0.11);
-  --hang: rgba(0, 0, 0, 0.6);
-  --label: rgba(255, 255, 255, 0.05);
+  --dim: #a3abcb;
+  --hair: rgba(214, 224, 255, 0.16);
+  --hair-2: rgba(214, 224, 255, 0.32);
+  --m-hi: rgba(226, 234, 255, 0.13);
+  --m-lo: rgba(0, 0, 8, 0.42);
+  --lamp: rgba(255, 238, 196, 0.16);
+  --hang: rgba(0, 0, 6, 0.62);
+  --plinth: #0e1840;
+  --floor: #0a0f26;
+  --parquet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='24'%3E%3Cpath d='M0 0L48 24L96 0M0 -24L48 0L96 -24M0 24L48 48L96 24M48 0V24M0 0V24M96 0V24' fill='none' stroke='%2327305e' stroke-width='1.2'/%3E%3C/svg%3E");
+  --gloss: rgba(120, 150, 255, 0.16);
+  /* antique gilt: pale and a little grey, never orange */
+  --ghi: #fff6d8;
+  --g1: #ecdcaa;
+  --g2: #d2bd82;
+  --g3: #baa76e;
+  --g4: #978652;
+  --g5: #6b5e38;
   color-scheme: dark;
 }
 :root.other-side dialog#short {
-  --void: #f4f3ef;
-  --veil: 244, 243, 239;
-  --star: #171a2c;
-  --dim: #5e6278;
-  --hair: rgba(23, 26, 44, 0.13);
-  --hair-2: rgba(23, 26, 44, 0.3);
-  --lamp: rgba(255, 255, 255, 0.9);
-  --hang: rgba(40, 44, 70, 0.34);
-  --label: #ffffff;
+  --void: #f1ede2;
+  --wall-2: #f8f5ec;
+  --veil: 241, 237, 226;
+  --star: #1a1c2e;
+  --dim: #5f6276;
+  --hair: rgba(26, 28, 46, 0.14);
+  --hair-2: rgba(26, 28, 46, 0.32);
+  --m-hi: rgba(255, 255, 255, 0.95);
+  --m-lo: rgba(70, 74, 100, 0.2);
+  --lamp: rgba(255, 255, 255, 0.85);
+  --hang: rgba(40, 42, 66, 0.36);
+  --plinth: #fbf9f3;
+  --floor: #ddd3bd;
+  --parquet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='24'%3E%3Cpath d='M0 0L48 24L96 0M0 -24L48 0L96 -24M0 24L48 48L96 24M48 0V24M0 0V24M96 0V24' fill='none' stroke='%23b8ab8e' stroke-width='1.2'/%3E%3C/svg%3E");
+  --gloss: rgba(255, 255, 255, 0.5);
   color-scheme: light;
 }
 dialog#short {
@@ -4571,17 +4591,33 @@ dialog#short::backdrop {
 .short-body {
   flex: 1;
   display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: clamp(22px, 5vw, 64px);
   font: 400 15px/1.6 var(--body);
+}
+/* the wall: lit from above, with a cornice under the ceiling */
+.sp-room {
+  position: relative;
+  flex: 1 0 auto;
+  display: flex;
+  padding: clamp(40px, 6vw, 76px) clamp(22px, 5vw, 64px) clamp(40px, 5vw, 64px);
+  background: radial-gradient(ellipse 90% 70% at 50% 0, var(--wall-2), transparent 75%);
+}
+.sp-room::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 17px;
+  background: linear-gradient(180deg, var(--m-lo) 0 2px, transparent 2px 6px, var(--m-hi) 6px 7px, var(--m-lo) 7px 8px, transparent 8px 14px, var(--m-hi) 14px 15px, var(--m-lo) 15px 17px);
+  pointer-events: none;
 }
 .sp {
   display: grid;
-  grid-template-columns: minmax(200px, 330px) minmax(0, 540px);
-  align-items: center;
-  gap: clamp(32px, 7vw, 96px);
-  width: min(100%, 980px);
+  grid-template-columns: minmax(220px, 372px) minmax(0, 540px);
+  align-items: stretch;
+  gap: clamp(84px, 9vw, 124px);
+  width: min(100%, 1040px);
   margin: auto; /* centred when it fits, and still reachable from the top when it does not */
   animation: sp-in 0.9s ease-out both;
 }
@@ -4591,86 +4627,229 @@ dialog#short::backdrop {
     transform: translateY(10px);
   }
 }
-/* the painting: hung on the wall under a lamp, in a black frame, with its label. It is also the way into the full site. */
-.sp-art {
+/* each half of the wall is a panel of boiserie: two fine mouldings, one inside the other */
+.sp-bay {
   position: relative;
-  display: block;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
 }
-/* the pool of light the lamp throws on the wall */
-.sp-art::before {
+.sp-bay::before,
+.sp-bay::after {
   content: '';
   position: absolute;
-  inset: -34% -46% -10%;
-  background: radial-gradient(ellipse 50% 56% at 50% 40%, var(--lamp), transparent 100%);
+  z-index: -1;
+  inset: -34px -32px;
+  border: 1px solid var(--m-hi);
+  box-shadow: 0 0 0 1px var(--m-lo), inset 0 0 0 1px var(--m-lo);
   pointer-events: none;
 }
+.sp-bay::after {
+  inset: -24px -22px;
+}
+
+/* ---- the painting: under its lamp, in a gilded frame ---- */
+.sp-hang {
+  position: relative;
+  margin-top: 26px;
+}
+/* the pool of light the lamp throws on the wall */
+.sp-hang::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -24% -34% -8%;
+  background: radial-gradient(closest-side, var(--lamp), transparent);
+  pointer-events: none;
+}
+/* the picture light: a brass tube on a short arm, and the light it throws down the canvas */
+.sp-lamp {
+  position: absolute;
+  z-index: 2;
+  left: 28%;
+  right: 28%;
+  bottom: 100%;
+  height: 9px;
+  margin-bottom: 12px;
+  border-radius: 99px;
+  background: linear-gradient(180deg, var(--ghi), var(--g2) 40%, var(--g4));
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.sp-lamp::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 3px;
+  height: 12px;
+  margin-left: -1.5px;
+  background: linear-gradient(90deg, var(--g2), var(--g4));
+}
+.sp-lamp::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: -60%;
+  right: -60%;
+  height: 300px;
+  background: radial-gradient(ellipse 50% 100% at 50% 0, rgba(255, 243, 208, 0.34), rgba(255, 243, 208, 0.1) 46%, transparent 72%);
+  mix-blend-mode: screen;
+}
+/* The frame is built the way a real one is moulded, from the wall inwards: a raised back edge, a flat run of pearl beading,
+   a deep scoop, a narrow flat, and a bright bead at the edge of the picture. Borders give true mitred corners. */
 .sp-frame {
   position: relative;
-  display: block;
-  padding: 13px;
+  font-size: 10px;
+  border: 0.55em solid;
+  border-color: var(--g1) var(--g3) var(--g5) var(--g2);
   border-radius: 2px;
-  background: linear-gradient(135deg, #30323c, #0d0e14 34%, #1c1e27 62%, #07080c);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 0 0 6px #0b0c11,
-    inset 0 0 0 7px rgba(255, 255, 255, 0.12),
-    0 34px 46px -20px var(--hang),
-    0 4px 8px var(--hang);
-  transition: transform 0.6s var(--spring);
+  background: var(--g2);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 3.6em 4.8em -2em var(--hang), 0 0.4em 0.9em var(--hang);
+  transition: transform 0.7s var(--spring);
 }
-.sp-frame canvas {
+.sp-f1 {
+  padding: 0.95em;
+  background:
+    radial-gradient(circle at 50% 44%, var(--ghi) 0 0.14em, var(--g1) 0.2em, var(--g4) 0.34em, transparent 0.4em) 0 0 / 0.95em 0.95em round,
+    linear-gradient(155deg, var(--g2), var(--g3) 48%, var(--g2));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+/* the carved band: a run of four-petalled flowers cut into a shallow channel */
+.sp-fc {
+  padding: 1.5em;
+  background:
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><g transform='translate(11 11)'><g transform='translate(.5 .8)' opacity='.6'><path transform='rotate(0)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%234d4326'/><path transform='rotate(90)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%234d4326'/><path transform='rotate(180)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%234d4326'/><path transform='rotate(270)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%234d4326'/><path transform='rotate(0)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%234d4326'/><path transform='rotate(90)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%234d4326'/><path transform='rotate(180)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%234d4326'/><path transform='rotate(270)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%234d4326'/></g><path transform='rotate(0)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%23baa76e'/><path transform='rotate(90)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%23baa76e'/><path transform='rotate(180)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%23baa76e'/><path transform='rotate(270)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%23baa76e'/><path transform='rotate(0)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%23ecdcaa'/><path transform='rotate(90)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%23ecdcaa'/><path transform='rotate(180)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%23ecdcaa'/><path transform='rotate(270)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%23ecdcaa'/><circle r='1.9' fill='%236b5e38'/><circle cx='-.2' cy='-.3' r='1.5' fill='%23fff6d8'/></g></svg>") 0 0 / 1.5em 1.5em round,
+    linear-gradient(160deg, var(--g4), var(--g5) 55%, var(--g4));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 0.16em 0.3em rgba(0, 0, 0, 0.4);
+}
+.sp-f2 {
+  position: relative;
+  border: 0.95em solid;
+  border-color: var(--g3) var(--g2) var(--g1) var(--g3);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+.sp-f3 {
+  border: 0.85em solid;
+  border-color: var(--g5) var(--g4) var(--g2) var(--g4);
+}
+.sp-f4 {
+  padding: 0.4em;
+  background: linear-gradient(160deg, var(--g3), var(--g4));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+.sp-f5 {
+  position: relative;
+  border: 0.26em solid;
+  border-color: var(--ghi) var(--g2) var(--g4) var(--g1);
+}
+/* a carved rosette on each corner of the scoop */
+.sp-ros {
+  position: absolute;
+  z-index: 1;
+  width: 1.8em;
+  height: 1.8em;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--ghi) 0 13%, var(--g3) 15% 22%, transparent 24%),
+    repeating-conic-gradient(var(--g1) 0 22.5deg, var(--g4) 22.5deg 45deg);
+  box-shadow: 0 0 0 0.12em var(--g4), 0 0 0 0.24em var(--g1), 0 0.12em 0.3em 0.2em rgba(0, 0, 0, 0.4);
+}
+.sp-ros:nth-of-type(1) {
+  top: -0.95em;
+  left: -0.95em;
+}
+.sp-ros:nth-of-type(2) {
+  top: -0.95em;
+  right: -0.95em;
+}
+.sp-ros:nth-of-type(3) {
+  bottom: -0.95em;
+  left: -0.95em;
+}
+.sp-ros:nth-of-type(4) {
+  bottom: -0.95em;
+  right: -0.95em;
+}
+.sp-f5 canvas {
   display: block;
   width: 100%;
   aspect-ratio: 4 / 5;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(244, 236, 204, 0.3);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75);
+  cursor: crosshair;
+  touch-action: pan-y;
 }
-.sp-art:hover .sp-frame,
-.sp-art:focus-visible .sp-frame {
-  transform: scale(1.025);
+/* the shadow the frame throws on the top of the canvas, and the lamp's light just under it */
+.sp-sheen {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 5%),
+    radial-gradient(ellipse 70% 46% at 50% 0, rgba(255, 244, 214, 0.2), transparent 100%);
+  pointer-events: none;
 }
-.sp-art:focus-visible {
-  outline: none;
+.sp-tip {
+  position: absolute;
+  z-index: 3;
+  padding: 5px 9px 4px;
+  border-radius: 2px;
+  background: #f7f3e6;
+  color: #171a2c;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, calc(-100% - 16px));
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
 }
-/* the museum label beside the work */
+.sp-tip.show {
+  opacity: 1;
+}
+/* the museum label: an ivory card on the wall, French title first, as in Paris */
 .sp-plate {
-  position: relative;
   display: grid;
-  gap: 2px;
+  gap: 1px;
   width: fit-content;
   max-width: 100%;
-  margin-top: 20px;
-  padding: 10px 14px 11px;
-  border: 1px solid var(--hair);
+  margin-top: 22px;
+  padding: 11px 15px 12px;
+  border: 0;
   border-radius: 2px;
-  background: var(--label);
-  color: var(--dim);
+  background: #f7f3e6;
+  color: #55586c;
   font: 400 12px/1.45 var(--body);
+  text-align: left;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 8px 18px -8px var(--hang), 0 1px 2px var(--hang);
+  cursor: pointer;
+  transition: transform 0.5s var(--spring);
+}
+.sp-plate:hover {
+  transform: scale(1.03);
 }
 .sp-plate b {
-  color: var(--star);
-  font-weight: 500;
+  color: #171a2c;
+  font: 500 14px/1.3 var(--body);
+}
+.sp-how {
+  max-width: 30ch;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(23, 26, 44, 0.14);
 }
 .sp-go {
-  margin-top: 5px;
+  margin-top: 6px;
+  color: #171a2c;
   font: 500 10px/1.4 var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  transition: color 0.2s;
 }
-.sp-art:hover .sp-go,
-.sp-art:focus-visible .sp-go {
-  color: var(--star);
-}
-.sp-text {
-  position: relative;
-}
+
+/* ---- the wall text ---- */
 .sp-text h1 {
   margin: 0 0 16px;
   font: 300 clamp(40px, 5.6vw, 68px)/0.95 var(--show);
@@ -4811,13 +4990,63 @@ dialog#short::backdrop {
   background: var(--star);
   box-shadow: 0 0 0 8px rgba(var(--veil), 0.2);
 }
+
+/* ---- the floor: a skirting board, then chevron parquet running away from the wall ---- */
+.sp-floor {
+  position: relative;
+  flex: none;
+  height: clamp(58px, 12vh, 124px);
+  overflow: hidden;
+  border-top: 15px solid var(--plinth);
+  background: var(--floor);
+  box-shadow: 0 -16px 0 -15px var(--m-hi), 0 -19px 0 -15px var(--m-lo), inset 0 1px 0 var(--m-lo);
+}
+.sp-floor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  right: -60%;
+  height: 520%;
+  background: var(--parquet) 0 0 / 112px 28px;
+  transform: perspective(240px) rotateX(64deg);
+  transform-origin: 50% 0;
+}
+/* polish: the wall's light lies on the boards nearest to it */
+.sp-floor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), transparent 26%), radial-gradient(ellipse 46% 120% at 38% 0, var(--gloss), transparent 100%);
+}
+
 /* a short window (a small laptop): everything tightens so it still fits one screen */
-@media (max-height: 780px) {
-  .short-body {
-    padding-block: 20px;
+@media (max-height: 800px) {
+  .sp-room {
+    padding-block: 34px 30px;
   }
   .sp {
-    grid-template-columns: minmax(180px, 270px) minmax(0, 540px);
+    grid-template-columns: minmax(200px, 300px) minmax(0, 540px);
+  }
+  .sp-bay::before {
+    inset: -24px -32px;
+  }
+  .sp-bay::after {
+    inset: -15px -22px;
+  }
+  .sp-frame {
+    font-size: 8px;
+  }
+  .sp-hang {
+    margin-top: 20px;
+  }
+  .sp-plate {
+    margin-top: 16px;
+    padding: 8px 12px 9px;
+    font-size: 11px;
+  }
+  .sp-how {
+    display: none;
   }
   .sp-text h1 {
     margin-bottom: 12px;
@@ -4835,27 +5064,109 @@ dialog#short::backdrop {
   .sp-facts {
     margin-bottom: 20px;
   }
+  .sp-floor {
+    height: clamp(40px, 8vh, 70px);
+    border-top-width: 11px;
+    box-shadow: 0 -12px 0 -11px var(--m-hi), 0 -15px 0 -11px var(--m-lo), inset 0 1px 0 var(--m-lo);
+  }
 }
-@media (max-width: 760px) {
+/* a very short window: the floor thins to a strip so the wall still fits */
+@media (max-height: 690px) and (min-width: 901px) {
+  .sp-room {
+    padding-block: 26px 18px;
+  }
+  .sp-bay::before {
+    inset: -16px -32px;
+  }
+  .sp-bay::after {
+    inset: -8px -22px;
+  }
+  .sp-floor {
+    height: 38px;
+  }
+}
+/* narrow screens: one column. The name comes first, then the painting, then the rest; the panels give way to the plain wall */
+@media (max-width: 900px) {
   .sp {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     margin: 0 auto;
   }
-  .sp-art {
-    width: min(50vw, 200px);
+  .sp-text {
+    display: contents;
+  }
+  .sp-text h1 {
+    order: -3;
+    margin-bottom: 12px;
+  }
+  .sp-sub {
+    order: -2;
+    margin-bottom: 26px;
+  }
+  .sp-bay-art {
+    order: -1;
+    align-self: center;
+    margin-bottom: 30px;
+  }
+  .sp-bay::before,
+  .sp-bay::after {
+    display: none;
+  }
+  .sp-bay-art {
+    width: min(74vw, 300px);
+  }
+  .sp-frame {
+    font-size: 7px;
+  }
+  .sp-room {
+    padding-top: 30px;
+  }
+  .sp-how {
+    display: block;
+  }
+  .sp-floor {
+    height: 84px;
   }
 }
 /* a phone held sideways: the picture stays small beside the text */
 @media (max-height: 520px) and (min-width: 560px) {
   .sp {
-    grid-template-columns: minmax(110px, 170px) minmax(0, 1fr);
+    display: grid;
+    grid-template-columns: minmax(130px, 190px) minmax(0, 1fr);
     align-items: start;
-    gap: 28px;
+    gap: 32px;
     margin: 0 auto;
   }
-  .sp-art {
+  .sp-text {
+    display: flex;
+  }
+  .sp-text h1,
+  .sp-sub,
+  .sp-bay-art {
+    order: 0;
+  }
+  .sp-sub {
+    margin-bottom: 8px;
+  }
+  .sp-bay-art {
+    margin-bottom: 0;
+  }
+  .sp-bay {
+    justify-content: flex-start;
+  }
+  .sp-bay::before,
+  .sp-bay::after {
+    display: none;
+  }
+  .sp-bay-art {
     width: auto;
+  }
+  .sp-frame {
+    font-size: 6px;
+  }
+  .sp-how {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
