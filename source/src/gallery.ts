@@ -60,14 +60,15 @@ export function projectPicture(name: string): string {
   const p = resume.projects.find((x) => x.name === name);
   if (!g || !p) return '';
   const link = (p.links ?? [])[0];
-  const pic = `<span class="piece-pic"><img src="${g.pic}" alt="${esc(g.alt)}" width="1000" height="625" loading="lazy" decoding="async"></span>`;
+  // the frame is moulded like the one in the short version: beading, a carved band, then the scoop round the picture
+  const pic = `<span class="piece-carve"><span class="piece-pic"><img src="${g.pic}" alt="${esc(g.alt)}" width="1000" height="625" loading="lazy" decoding="async"></span></span>`;
   const frame =
     name === 'Resume Quest'
       ? `<a class="piece-frame" href="#top" data-to-top aria-label="${esc(p.name)}: back up to the galaxy">${pic}</a>`
       : link
         ? `<a class="piece-frame" href="${esc(link.url)}" target="_blank" rel="noopener" aria-label="${esc(p.name)}: ${esc(link.label.toLowerCase())}, opens in a new tab">${pic}</a>`
         : `<span class="piece-frame">${pic}</span>`;
-  return `<figure class="story-pic" data-soft>${frame}<figcaption class="mono">${esc(g.shows)}${g.credit ? ` ${esc(g.credit)}` : ''}</figcaption></figure>`;
+  return `<figure class="story-pic" data-soft>${frame}<figcaption><b>${esc(p.name)}<i>, ${esc(p.dates.slice(-4))}</i></b><span>${esc(g.shows)}${g.credit ? ` ${esc(g.credit)}` : ''}</span></figcaption></figure>`;
 }
 
 /** The heading that opens the Projects chapter. The plain "Projects" heading under it is the one for paper and screen readers. */

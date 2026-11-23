@@ -78,6 +78,7 @@ function projectRooms() {
             ${d ? `<figcaption>${esc(d.caption)}</figcaption>` : ''}
           </figure>
         </div>
+        ${FLOOR}
       </article>`;
     })
     .join('')}</div>`;
@@ -148,11 +149,14 @@ function skills() {
 
 
 
+/** Each chapter is a room of the museum, and a room ends at its floor: low panelling under a rail, a skirting board and a strip of parquet. */
+const FLOOR = '<div class="mz-dado screen-only" aria-hidden="true"></div><div class="sp-floor mz-floor screen-only" aria-hidden="true"></div>';
+
 /** The one-page resume that sits below the galaxy. */
 export function siteResume(): string {
   const r = resume;
   // each chapter can open with a scroll-driven piece; the plain rows underneath are what prints
-  const sec = (i: number, inner: string, before = '', note = '') => {
+  const sec = (i: number, inner: string, before = '', note = '', floor = true) => {
     const s2 = cvSections[i];
     return `<section id="${s2.id}" class="cv-chap" aria-labelledby="${s2.id}-h">
       ${before}
@@ -160,7 +164,7 @@ export function siteResume(): string {
         <h2 class="cv-h reveal" id="${s2.id}-h">${esc(s2.label)}${note ? `<span class="cv-h-note screen-only">${esc(note)}</span>` : ''}</h2>
         <div class="cv-rows">${inner}</div>
       </div>
-    </section>`;
+    </section>${floor ? FLOOR : ''}`;
   };
   return `
   <header class="cv-hero reveal">
@@ -175,8 +179,8 @@ export function siteResume(): string {
       <button class="pill" data-print>Save as PDF</button>
     </p>
   </header>
-  ${aboutMe()}
-  ${sec(1, projectRooms(), projectsHead())}
+  ${aboutMe()}${FLOOR}
+  ${sec(1, projectRooms(), projectsHead(), '', false)}
   ${sec(2, timeline(), sideways())}
   ${sec(3, education(), yearBand())}
   ${sec(4, skills(), skillMap())}
@@ -189,11 +193,13 @@ export function siteResume(): string {
       </p>
     </div>`,
     closing(),
+    '',
+    false,
   )}
   <footer class="cv-foot mono">
     <span>© ${new Date().getFullYear()} ${esc(r.name)}</span>
     <span>The galaxy is drawn on a canvas in TypeScript, with no game engine.</span>
-  </footer>`;
+  </footer>${FLOOR}`;
 }
 
 /** A few plain paragraphs about the person, on screen only: the printed resume stays a resume. */
