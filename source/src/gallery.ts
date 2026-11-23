@@ -7,6 +7,7 @@ import pvGravity from './assets/pv-gravity.jpg';
 import pvQuest from './assets/pv-quest.jpg';
 import pvTickerchatter from './assets/pv-tickerchatter.jpg';
 import { resume } from './data';
+import { inkFrame } from './ink';
 
 const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -60,8 +61,8 @@ export function projectPicture(name: string): string {
   const p = resume.projects.find((x) => x.name === name);
   if (!g || !p) return '';
   const link = (p.links ?? [])[0];
-  // the frame is moulded like the one in the short version: beading, a carved band, then the scoop round the picture
-  const pic = `<span class="piece-carve"><span class="piece-pic"><img src="${g.pic}" alt="${esc(g.alt)}" width="1000" height="625" loading="lazy" decoding="async"></span></span>`;
+  // the frame is drawn in pen like the one in the short version, hung by two wires from a nail
+  const pic = `${inkFrame(1000, 625, 76, 20 + PIECES.indexOf(g))}<span class="piece-pic"><img src="${g.pic}" alt="${esc(g.alt)}" width="1000" height="625" loading="lazy" decoding="async"></span>`;
   const frame =
     name === 'Resume Quest'
       ? `<a class="piece-frame" href="#top" data-to-top aria-label="${esc(p.name)}: back up to the galaxy">${pic}</a>`

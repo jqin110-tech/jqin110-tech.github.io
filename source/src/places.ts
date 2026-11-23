@@ -680,11 +680,10 @@ export const lectureScene: SceneFactory = (env) => {
     slate: K.pick('#22342c', '#2c4338'), chalk: 'rgba(244,246,238,0.94)', tileA: K.pick('#2b2723', '#e9dfcc'), tileB: K.pick('#353029', '#d6c9b1'),
     cork: K.pick('#8a6a45', '#c69a68'),
   };
-  const seeking = resume.summary.trim().split('. ').pop()!;
   const stops: Stop[] = [
     { title: e0.school, meta: e0.dates, body: esc(`${e0.program}.`), accent: C.acc, w: 0, h: 0 },
     { title: 'Graduation', meta: e0.grad, body: esc(e0.details[0]), accent: C.acc, w: 0, h: 0 },
-    { title: 'Co-op', body: esc(seeking), accent: C.acc, w: 0, h: 0 },
+    { title: 'Co-op', body: esc('Co-op program, with work terms between study terms.'), accent: C.acc, w: 0, h: 0 },
   ];
   let u = 1;
   let floor: CanvasPattern | null = null;
@@ -1458,7 +1457,7 @@ export const postScene: SceneFactory = (env) => {
   const stops: Stop[] = [
     {
       title: 'Email',
-      body: 'I’m looking for software engineering internship and co-op roles. The fastest way to reach me is email.',
+      body: 'The fastest way to reach me is email.',
       links: [{ label: resume.email, url: `mailto:${resume.email}` }],
       accent: C.acc, w: 0, h: 0,
     },

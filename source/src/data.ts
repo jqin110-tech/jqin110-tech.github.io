@@ -31,7 +31,7 @@ export const resume = {
   email: 'jqin110@gmail.com',
   links: [{ label: 'GitHub', url: 'https://github.com/jqin110-tech' }] as Link[],
   summary:
-    'First-year Honours Mathematics student at Waterloo. I build data tools and simulations in Python and check them against real data. Looking for a software engineering co-op or internship.',
+    'First-year Honours Mathematics student at Waterloo. I build data tools and simulations in Python and check them against real data.',
 
   /** About me. Every fact here comes from Joshua's own notes (2026-11-12); do not add to it without asking him. */
   about: {

@@ -79,7 +79,7 @@ export function roomBody(z: Zone): string {
         .join('')}</dl>
         <h4 class="label">Problems that caught my attention</h4>${notes(r.curiosity)}`;
     case 'signal':
-      return `<p class="lede">I’m looking for software engineering internship and co-op roles. The fastest way to reach me is email.</p>
+      return `<p class="lede">The fastest way to reach me is email.</p>
         ${contactBlock()}`;
   }
 }

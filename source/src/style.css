@@ -4521,58 +4521,66 @@ dialog#room.museum::backdrop {
   }
 }
 
-/* ================= the short version: one room of a Paris museum ================= */
-/* By night it is the deep blue room where the Louvre hangs its most famous painting; in light mode, an ivory gallery.
-   A panelled wall, a gilded frame under a picture light, a museum label, and a chevron parquet floor. */
+/* ================= pen and wash: the drawings in ink.ts ================= */
+/* The ink takes the text colour. The washes are thin and few: grey for zinc and shadow, one yellow for a lit window. */
 @media screen {
-  dialog#short,
-  .cv {
-    --void: #0b1436;
-    --wall-2: #101c48;
-    --veil: 11, 20, 54;
-    --star: #f3efe2;
-    --dim: #a3abcb;
-    --hair: rgba(214, 224, 255, 0.16);
-    --hair-2: rgba(214, 224, 255, 0.32);
-    --m-hi: rgba(226, 234, 255, 0.13);
-    --m-lo: rgba(0, 0, 8, 0.42);
-    --lamp: rgba(255, 238, 196, 0.16);
-    --hang: rgba(0, 0, 6, 0.62);
-    --plinth: #0e1840;
-    --floor: #0a0f26;
-    --parquet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='24'%3E%3Cpath d='M0 0L48 24L96 0M0 -24L48 0L96 -24M0 24L48 48L96 24M48 0V24M0 0V24M96 0V24' fill='none' stroke='%2327305e' stroke-width='1.2'/%3E%3C/svg%3E");
-    --gloss: rgba(120, 150, 255, 0.16);
-    /* antique gilt: pale and a little grey, never orange */
-    --ghi: #fff6d8;
-    --g1: #ecdcaa;
-    --g2: #d2bd82;
-    --g3: #baa76e;
-    --g4: #978652;
-    --g5: #6b5e38;
-    --carve: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><g transform='translate(11 11)'><g transform='translate(.5 .8)' opacity='.6'><path transform='rotate(0)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%234d4326'/><path transform='rotate(90)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%234d4326'/><path transform='rotate(180)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%234d4326'/><path transform='rotate(270)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%234d4326'/><path transform='rotate(0)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%234d4326'/><path transform='rotate(90)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%234d4326'/><path transform='rotate(180)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%234d4326'/><path transform='rotate(270)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%234d4326'/></g><path transform='rotate(0)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%23baa76e'/><path transform='rotate(90)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%23baa76e'/><path transform='rotate(180)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%23baa76e'/><path transform='rotate(270)' d='M1.5 -1.5C4.6 -2.4 6.6 -4.4 7.4 -7.4C4.4 -6.6 2.4 -4.6 1.5 -1.5Z' fill='%23baa76e'/><path transform='rotate(0)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%23ecdcaa'/><path transform='rotate(90)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%23ecdcaa'/><path transform='rotate(180)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%23ecdcaa'/><path transform='rotate(270)' d='M0 -1.6C3.1 -4.4 3.1 -8 0 -10.2C-3.1 -8 -3.1 -4.4 0 -1.6Z' fill='%23ecdcaa'/><circle r='1.9' fill='%236b5e38'/><circle cx='-.2' cy='-.3' r='1.5' fill='%23fff6d8'/></g></svg>");
-    color-scheme: dark;
+  :root {
+    --w-frame: rgba(240, 236, 228, 0.045);
+    --w-shade: rgba(240, 236, 228, 0.08);
+    --w-zinc: rgba(150, 156, 164, 0.24);
+    --w-wall: rgba(240, 236, 228, 0.04);
+    --w-lit: rgba(255, 224, 130, 0.88);
   }
-  :root.other-side dialog#short,
-  :root.other-side .cv {
-    --void: #f1ede2;
-    --wall-2: #f8f5ec;
-    --veil: 241, 237, 226;
-    --star: #1a1c2e;
-    --dim: #5f6276;
-    --hair: rgba(26, 28, 46, 0.14);
-    --hair-2: rgba(26, 28, 46, 0.32);
-    --m-hi: rgba(255, 255, 255, 0.95);
-    --m-lo: rgba(70, 74, 100, 0.2);
-    --lamp: rgba(255, 255, 255, 0.85);
-    --hang: rgba(40, 42, 66, 0.36);
-    --plinth: #fbf9f3;
-    --floor: #ddd3bd;
-    --parquet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='24'%3E%3Cpath d='M0 0L48 24L96 0M0 -24L48 0L96 -24M0 24L48 48L96 24M48 0V24M0 0V24M96 0V24' fill='none' stroke='%23b8ab8e' stroke-width='1.2'/%3E%3C/svg%3E");
-    --gloss: rgba(255, 255, 255, 0.5);
-    color-scheme: light;
+  :root.other-side {
+    --w-frame: rgba(112, 98, 70, 0.1);
+    --w-shade: rgba(40, 40, 56, 0.1);
+    --w-zinc: rgba(98, 106, 116, 0.26);
+    --w-wall: rgba(112, 98, 70, 0.07);
+    --w-lit: rgba(250, 206, 92, 0.7);
   }
 }
+.ink {
+  display: block;
+  overflow: visible;
+  color: var(--star);
+  fill: currentColor;
+  pointer-events: none;
+}
+.ink .ink-soft {
+  opacity: 0.55;
+}
+.ink .ink-far {
+  opacity: 0.62;
+}
+.ink .ink-paper {
+  fill: var(--void);
+}
+.ink .w-frame {
+  fill: var(--w-frame);
+}
+.ink .w-shade {
+  fill: var(--w-shade);
+}
+.ink .w-zinc {
+  fill: var(--w-zinc);
+}
+.ink .w-wall {
+  fill: var(--w-wall);
+}
+.ink .w-lit {
+  fill: var(--w-lit);
+}
+.ink-frame {
+  position: absolute;
+  z-index: 1;
+}
+
+/* ================= the short version: a page from a Paris sketchbook ================= */
+/* One wall of a gallery, drawn in pen: a picture rail, the painting hanging from it by two wires in an inked frame,
+   its label, and the rooftops of Paris along the bottom of the page. No gradients, no gilding, no glow. */
 dialog#short {
+  --void: #0b0b0e;
+  --veil: 11, 11, 14;
   width: 100vw;
   max-width: 100vw;
   height: 100dvh;
@@ -4583,6 +4591,10 @@ dialog#short {
   background: var(--void);
   color: var(--star);
   overflow: hidden;
+}
+:root.other-side dialog#short {
+  --void: #f6f2e9;
+  --veil: 246, 242, 233;
 }
 dialog#short[open] {
   display: flex;
@@ -4597,216 +4609,77 @@ dialog#short::backdrop {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden auto;
   overscroll-behavior: contain;
   font: 400 15px/1.6 var(--body);
 }
-/* the wall: lit from above, with a cornice under the ceiling */
 .sp-room {
   position: relative;
   flex: 1 0 auto;
   display: flex;
-  padding: clamp(40px, 6vw, 76px) clamp(22px, 5vw, 64px) clamp(40px, 5vw, 64px);
-  background: radial-gradient(ellipse 90% 70% at 50% 0, var(--wall-2), transparent 75%);
-}
-.sp-room::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 17px;
-  background: linear-gradient(180deg, var(--m-lo) 0 2px, transparent 2px 6px, var(--m-hi) 6px 7px, var(--m-lo) 7px 8px, transparent 8px 14px, var(--m-hi) 14px 15px, var(--m-lo) 15px 17px);
-  pointer-events: none;
+  padding: clamp(26px, 4vh, 44px) clamp(22px, 5vw, 64px) clamp(18px, 3vh, 32px);
 }
 .sp {
   display: grid;
-  grid-template-columns: minmax(220px, 372px) minmax(0, 540px);
-  align-items: stretch;
-  gap: clamp(84px, 9vw, 124px);
-  width: min(100%, 1040px);
-  margin: auto; /* centred when it fits, and still reachable from the top when it does not */
-  animation: sp-in 0.9s ease-out both;
+  grid-template-columns: minmax(220px, 350px) minmax(0, 540px);
+  gap: clamp(72px, 9vw, 128px);
+  align-items: start;
+  margin: auto;
 }
-@keyframes sp-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-/* each half of the wall is a panel of boiserie: two fine mouldings, one inside the other */
 .sp-bay {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   min-width: 0;
 }
-.sp-bay::before,
-.sp-bay::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: -34px -32px;
-  border: 1px solid var(--m-hi);
-  box-shadow: 0 0 0 1px var(--m-lo), inset 0 0 0 1px var(--m-lo);
-  pointer-events: none;
-}
-.sp-bay::after {
-  inset: -24px -22px;
+/* the wall text starts under the picture rail */
+.sp-text {
+  padding-top: clamp(44px, 8vh, 84px);
 }
 
-/* ---- the painting: under its lamp, in a gilded frame ---- */
+/* ---- the painting: hung from the rail ---- */
 .sp-hang {
   position: relative;
-  margin-top: 26px;
+  padding-top: 13%;
 }
-/* the pool of light the lamp throws on the wall */
-.sp-hang::before {
-  content: '';
+.sp-rail {
   position: absolute;
-  z-index: -1;
-  inset: -24% -34% -8%;
-  background: radial-gradient(closest-side, var(--lamp), transparent);
-  pointer-events: none;
-}
-/* the picture light: a brass tube on a short arm, and the light it throws down the canvas */
-.sp-lamp {
-  position: absolute;
-  z-index: 2;
-  left: 28%;
-  right: 28%;
-  bottom: 100%;
-  height: 9px;
-  margin-bottom: 12px;
-  border-radius: 99px;
-  background: linear-gradient(180deg, var(--ghi), var(--g2) 40%, var(--g4));
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-  pointer-events: none;
-}
-.sp-lamp::before {
-  content: '';
-  position: absolute;
+  top: -3px;
   left: 50%;
-  top: 100%;
-  width: 3px;
-  height: 12px;
-  margin-left: -1.5px;
-  background: linear-gradient(90deg, var(--g2), var(--g4));
+  width: 240vw;
+  height: 15px;
+  transform: translateX(-50%);
+  opacity: 0.78;
+  pointer-events: none;
 }
-.sp-lamp::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: -60%;
-  right: -60%;
-  height: 300px;
-  background: radial-gradient(ellipse 50% 100% at 50% 0, rgba(255, 243, 208, 0.34), rgba(255, 243, 208, 0.1) 46%, transparent 72%);
-  mix-blend-mode: screen;
+.sp-rail svg,
+.sp-roofs svg {
+  width: 100%;
+  height: 100%;
 }
-/* The frame is built the way a real one is moulded, from the wall inwards: a raised back edge, a flat run of pearl beading,
-   a deep scoop, a narrow flat, and a bright bead at the edge of the picture. Borders give true mitred corners. */
 .sp-frame {
   position: relative;
-  font-size: 10px;
-  border: 0.55em solid;
-  border-color: var(--g1) var(--g3) var(--g5) var(--g2);
-  border-radius: 2px;
-  background: var(--g2);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 3.6em 4.8em -2em var(--hang), 0 0.4em 0.9em var(--hang);
+  padding: 11.83%;
   transition: transform 0.7s var(--spring);
 }
-.sp-f1 {
-  padding: 0.95em;
-  background:
-    radial-gradient(circle at 50% 44%, var(--ghi) 0 0.14em, var(--g1) 0.2em, var(--g4) 0.34em, transparent 0.4em) 0 0 / 0.95em 0.95em round,
-    linear-gradient(155deg, var(--g2), var(--g3) 48%, var(--g2));
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
-}
-/* the carved band: a run of four-petalled flowers cut into a shallow channel */
-.sp-fc {
-  padding: 1.5em;
-  background:
-    var(--carve) 0 0 / 1.5em 1.5em round,
-    linear-gradient(160deg, var(--g4), var(--g5) 55%, var(--g4));
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 0.16em 0.3em rgba(0, 0, 0, 0.4);
-}
-.sp-f2 {
+.sp-pic {
   position: relative;
-  border: 0.95em solid;
-  border-color: var(--g3) var(--g2) var(--g1) var(--g3);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
 }
-.sp-f3 {
-  border: 0.85em solid;
-  border-color: var(--g5) var(--g4) var(--g2) var(--g4);
-}
-.sp-f4 {
-  padding: 0.4em;
-  background: linear-gradient(160deg, var(--g3), var(--g4));
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
-}
-.sp-f5 {
-  position: relative;
-  border: 0.26em solid;
-  border-color: var(--ghi) var(--g2) var(--g4) var(--g1);
-}
-/* a carved rosette on each corner of the scoop */
-.sp-ros {
-  position: absolute;
-  z-index: 1;
-  width: 1.8em;
-  height: 1.8em;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, var(--ghi) 0 13%, var(--g3) 15% 22%, transparent 24%),
-    repeating-conic-gradient(var(--g1) 0 22.5deg, var(--g4) 22.5deg 45deg);
-  box-shadow: 0 0 0 0.12em var(--g4), 0 0 0 0.24em var(--g1), 0 0.12em 0.3em 0.2em rgba(0, 0, 0, 0.4);
-}
-.sp-ros:nth-of-type(1) {
-  top: -0.95em;
-  left: -0.95em;
-}
-.sp-ros:nth-of-type(2) {
-  top: -0.95em;
-  right: -0.95em;
-}
-.sp-ros:nth-of-type(3) {
-  bottom: -0.95em;
-  left: -0.95em;
-}
-.sp-ros:nth-of-type(4) {
-  bottom: -0.95em;
-  right: -0.95em;
-}
-.sp-f5 canvas {
+.sp-pic canvas {
   display: block;
   width: 100%;
   aspect-ratio: 4 / 5;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75);
   cursor: crosshair;
   touch-action: pan-y;
-}
-/* the shadow the frame throws on the top of the canvas, and the lamp's light just under it */
-.sp-sheen {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 5%),
-    radial-gradient(ellipse 70% 46% at 50% 0, rgba(255, 244, 214, 0.2), transparent 100%);
-  pointer-events: none;
 }
 .sp-tip {
   position: absolute;
   z-index: 3;
   padding: 5px 9px 4px;
-  border-radius: 2px;
-  background: #f7f3e6;
-  color: #171a2c;
+  border: 1px solid var(--star);
+  background: var(--void);
+  color: var(--star);
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
   transform: translate(-50%, calc(-100% - 16px));
   opacity: 0;
   transition: opacity 0.15s;
@@ -4815,40 +4688,40 @@ dialog#short::backdrop {
 .sp-tip.show {
   opacity: 1;
 }
-/* the museum label: an ivory card on the wall, French title first, as in Paris */
+/* the label: a small card pinned by the picture, French title first */
 .sp-plate {
   display: grid;
   gap: 1px;
   width: fit-content;
   max-width: 100%;
-  margin-top: 22px;
-  padding: 11px 15px 12px;
-  border: 0;
-  border-radius: 2px;
-  background: #f7f3e6;
-  color: #55586c;
+  margin-top: 30px;
+  padding: 10px 14px 11px;
+  border: 1px solid var(--hair-2);
+  border-radius: 1px;
+  background: none;
+  color: var(--dim);
   font: 400 12px/1.45 var(--body);
   text-align: left;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 8px 18px -8px var(--hang), 0 1px 2px var(--hang);
   cursor: pointer;
-  transition: transform 0.5s var(--spring);
+  transition: transform 0.5s var(--spring), border-color 0.2s;
 }
 .sp-plate:hover {
   transform: scale(1.03);
+  border-color: var(--star);
 }
 .sp-plate b {
-  color: #171a2c;
+  color: var(--star);
   font: 500 14px/1.3 var(--body);
 }
 .sp-how {
   max-width: 30ch;
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid rgba(23, 26, 44, 0.14);
+  border-top: 1px solid var(--hair);
 }
 .sp-go {
   margin-top: 6px;
-  color: #171a2c;
+  color: var(--star);
   font: 500 10px/1.4 var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -4996,57 +4869,25 @@ dialog#short::backdrop {
   box-shadow: 0 0 0 8px rgba(var(--veil), 0.2);
 }
 
-/* ---- the floor: a skirting board, then chevron parquet running away from the wall ---- */
-.sp-floor {
-  position: relative;
+/* ---- the rooftops along the bottom of the page ---- */
+.sp-roofs {
   flex: none;
-  height: clamp(58px, 12vh, 124px);
-  overflow: hidden;
-  border-top: 15px solid var(--plinth);
-  background: var(--floor);
-  box-shadow: 0 -16px 0 -15px var(--m-hi), 0 -19px 0 -15px var(--m-lo), inset 0 1px 0 var(--m-lo);
-}
-.sp-floor::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -60%;
-  right: -60%;
-  height: 520%;
-  background: var(--parquet) 0 0 / 112px 28px;
-  transform: perspective(240px) rotateX(64deg);
-  transform-origin: 50% 0;
-}
-/* polish: the wall's light lies on the boards nearest to it */
-.sp-floor::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), transparent 26%), radial-gradient(ellipse 46% 120% at 38% 0, var(--gloss), transparent 100%);
+  height: clamp(88px, 15.5vh, 160px);
 }
 
 /* a short window (a small laptop): everything tightens so it still fits one screen */
 @media (max-height: 800px) {
   .sp-room {
-    padding-block: 34px 30px;
+    padding-block: 24px 20px;
   }
   .sp {
-    grid-template-columns: minmax(200px, 300px) minmax(0, 540px);
+    grid-template-columns: minmax(200px, 286px) minmax(0, 540px);
   }
-  .sp-bay::before {
-    inset: -24px -32px;
-  }
-  .sp-bay::after {
-    inset: -15px -22px;
-  }
-  .sp-frame {
-    font-size: 8px;
-  }
-  .sp-hang {
-    margin-top: 20px;
+  .sp-text {
+    padding-top: 40px;
   }
   .sp-plate {
-    margin-top: 16px;
+    margin-top: 22px;
     padding: 8px 12px 9px;
     font-size: 11px;
   }
@@ -5069,28 +4910,28 @@ dialog#short::backdrop {
   .sp-facts {
     margin-bottom: 20px;
   }
-  .sp-floor {
-    height: clamp(40px, 8vh, 70px);
-    border-top-width: 11px;
-    box-shadow: 0 -12px 0 -11px var(--m-hi), 0 -15px 0 -11px var(--m-lo), inset 0 1px 0 var(--m-lo);
+  .sp-roofs {
+    height: clamp(60px, 12vh, 100px);
   }
 }
-/* a very short window: the floor thins to a strip so the wall still fits */
 @media (max-height: 690px) and (min-width: 901px) {
   .sp-room {
-    padding-block: 26px 18px;
+    padding-block: 18px 12px;
   }
-  .sp-bay::before {
-    inset: -16px -32px;
+  .sp {
+    grid-template-columns: minmax(180px, 240px) minmax(0, 540px);
   }
-  .sp-bay::after {
-    inset: -8px -22px;
+  .sp-text {
+    padding-top: 22px;
   }
-  .sp-floor {
-    height: 38px;
+  .sp-facts {
+    margin-bottom: 14px;
+  }
+  .sp-roofs {
+    height: 46px;
   }
 }
-/* narrow screens: one column. The name comes first, then the painting, then the rest; the panels give way to the plain wall */
+/* narrow screens: one column. The name comes first, then the painting on its rail, then the rest */
 @media (max-width: 900px) {
   .sp {
     display: flex;
@@ -5107,22 +4948,13 @@ dialog#short::backdrop {
   }
   .sp-sub {
     order: -2;
-    margin-bottom: 26px;
+    margin-bottom: 30px;
   }
   .sp-bay-art {
     order: -1;
     align-self: center;
+    width: min(76vw, 310px);
     margin-bottom: 30px;
-  }
-  .sp-bay::before,
-  .sp-bay::after {
-    display: none;
-  }
-  .sp-bay-art {
-    width: min(74vw, 300px);
-  }
-  .sp-frame {
-    font-size: 7px;
   }
   .sp-room {
     padding-top: 30px;
@@ -5130,8 +4962,8 @@ dialog#short::backdrop {
   .sp-how {
     display: block;
   }
-  .sp-floor {
-    height: 84px;
+  .sp-roofs {
+    height: 104px;
   }
 }
 /* a phone held sideways: the picture stays small beside the text */
@@ -5140,11 +4972,12 @@ dialog#short::backdrop {
     display: grid;
     grid-template-columns: minmax(130px, 190px) minmax(0, 1fr);
     align-items: start;
-    gap: 32px;
+    gap: 36px;
     margin: 0 auto;
   }
   .sp-text {
-    display: flex;
+    display: block;
+    padding-top: 26px;
   }
   .sp-text h1,
   .sp-sub,
@@ -5155,260 +4988,85 @@ dialog#short::backdrop {
     margin-bottom: 8px;
   }
   .sp-bay-art {
-    margin-bottom: 0;
-  }
-  .sp-bay {
-    justify-content: flex-start;
-  }
-  .sp-bay::before,
-  .sp-bay::after {
-    display: none;
-  }
-  .sp-bay-art {
+    align-self: start;
     width: auto;
-  }
-  .sp-frame {
-    font-size: 6px;
+    margin-bottom: 0;
   }
   .sp-how {
     display: none;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sp {
-    animation: none;
+  .sp-roofs {
+    height: 64px;
   }
 }
 
-/* ================= the resume: more rooms of the same museum ================= */
-/* The scrolling resume shares the short version's wall, gilt and parquet. Each chapter and each project is a room:
-   a cornice under the ceiling, light falling down the wall from it, and a strip of floor where the room ends. */
+/* ================= the resume: pictures hang the same way, and the lines between chapters are drawn by hand ================= */
 @media screen {
-  .cv {
-    color: var(--star);
-    --glass: rgba(15, 26, 68, 0.62);
-    --glass-2: rgba(16, 28, 72, 0.9);
-    --panel: rgba(7, 13, 38, 0.92);
-    --panel-solid: rgb(7, 13, 38);
-    --dust: #dccb96;
-    --dust-rgb: 220, 203, 150;
-    --dust-2: #ecdcaa;
-    --on-dust: #121738;
-    --dado: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='56'%3E%3Crect x='10.5' y='13.5' width='239' height='32' fill='none' stroke='rgb(0 0 8 / .42)'/%3E%3Crect x='11.5' y='14.5' width='237' height='30' fill='none' stroke='rgb(226 234 255 / .13)'/%3E%3Crect x='16.5' y='19.5' width='227' height='20' fill='none' stroke='rgb(226 234 255 / .13)' stroke-opacity='.55'/%3E%3C/svg%3E");
-    --focus: #a9c6f2;
-    /* the chapter colours, taken down to pastels that sit on the blue wall */
-    --c-orange: #ecc9a2;
-    --c-green: #a9d8c2;
-    --c-blue: #a9c6f2;
-    --c-violet: #c6bbee;
-    --c-rose: #ecb6bd;
-    --c-tan: #e6d8a8;
-    --p0: var(--c-orange);
-    --p1: var(--c-green);
-    --p2: var(--c-rose);
-    --p3: var(--c-blue);
-    --p4: var(--c-violet);
-    --p5: var(--c-tan);
+  .ink-rule-row {
+    height: 12px;
+    margin: 0 -18px;
+    opacity: 0.5;
   }
-  :root.other-side .cv {
-    --glass: rgba(255, 253, 247, 0.7);
-    --glass-2: rgba(255, 253, 247, 0.92);
-    --panel: rgba(251, 249, 243, 0.92);
-    --panel-solid: rgb(251, 249, 243);
-    --dust: #7d6c3a;
-    --dust-rgb: 125, 108, 58;
-    --dust-2: #94824a;
-    --on-dust: #fffdf6;
-    --dado: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='56'%3E%3Crect x='10.5' y='13.5' width='239' height='32' fill='none' stroke='rgb(70 74 100 / .2)'/%3E%3Crect x='11.5' y='14.5' width='237' height='30' fill='none' stroke='rgb(255 255 255 / .95)'/%3E%3Crect x='16.5' y='19.5' width='227' height='20' fill='none' stroke='rgb(255 255 255 / .95)' stroke-opacity='.55'/%3E%3C/svg%3E");
-    --focus: #3d4fa8;
-    --c-orange: #a8622f;
-    --c-green: #2f7d5c;
-    --c-blue: #2f63b8;
-    --c-violet: #5a48b8;
-    --c-rose: #b8404e;
-    --c-tan: #7d6c3a;
+  .ink-rule-row svg {
+    width: 100%;
+    height: 100%;
   }
-
-  /* ---- a room: cornice and light at the top ---- */
-  .cv-chap,
-  .proj {
-    position: relative;
-    isolation: isolate;
-  }
-  .cv-chap::before,
-  .proj::before {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    top: 0;
-    left: 50%;
-    width: 100vw;
-    height: min(80vh, 100%);
-    transform: translateX(-50%);
-    background:
-      linear-gradient(180deg, var(--m-lo) 0 2px, transparent 2px 6px, var(--m-hi) 6px 7px, var(--m-lo) 7px 8px, transparent 8px 14px, var(--m-hi) 14px 15px, var(--m-lo) 15px 17px) top / 100% 17px no-repeat,
-      radial-gradient(ellipse 62% 100% at 50% 0, var(--wall-2), transparent 74%);
-    pointer-events: none;
-  }
-  /* the cornice has taken the place of the hairlines that used to part the chapters */
+  /* the hand-drawn line has taken the place of the hairlines that used to part the chapters */
   .about,
   .gal,
   .proj > .story {
     border-top: 0;
   }
-  /* the projects chapter is a lobby that opens into six rooms: the lobby and the first room share a ceiling */
-  #cv-projects::before,
-  .proj:first-child::before {
-    content: none;
-  }
-  .gal {
-    position: relative;
-    isolation: isolate;
-  }
-
-  /* ---- where a room ends: low panelling under a rail, laid over the room's own bottom margin, then the floor ---- */
-  .mz-dado {
-    position: relative;
-    left: 50%;
-    width: 100vw;
-    height: 62px;
-    margin: -62px 0 0 -50vw;
-    background:
-      linear-gradient(180deg, var(--m-hi) 0 1px, var(--m-lo) 1px 3px, transparent 3px 6px, var(--m-hi) 6px 7px, var(--m-lo) 7px 8px) top / 100% 8px no-repeat,
-      var(--dado) 50% 100% / 260px 56px repeat-x;
-    pointer-events: none;
-  }
-  .mz-floor {
-    left: 50%;
-    width: 100vw;
-    height: clamp(48px, 7.5vh, 72px);
-    margin-left: -50vw;
-  }
-  /* the last line of the page sits on the wall above the panelling */
-  .cv-foot {
-    padding-bottom: 88px;
-  }
-  /* the floor parts the rooms now, so they need less empty wall between them */
-  .proj .lab-panel {
-    padding-bottom: 104px;
-  }
-  .proj .story-head {
-    padding-top: 12vh;
-  }
-  @media (max-width: 860px) {
-    .proj .lab-panel {
-      padding-bottom: 92px;
-    }
-    .proj .story-head {
-      padding-top: 10vh;
-    }
-  }
-
-  /* ---- a project's picture: gilt frame, picture light, label ---- */
   .story-pic {
     position: relative;
-    padding-top: 30px;
-  }
-  .story-pic::before {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    inset: -12% -22% 6%;
-    background: radial-gradient(closest-side, var(--lamp), transparent);
-    pointer-events: none;
+    padding-top: 13%;
   }
   .piece-frame {
     position: relative;
-    font-size: clamp(6px, 0.68vw, 9.5px);
-    padding: 0.95em;
-    border: 0.55em solid;
-    border-color: var(--g1) var(--g3) var(--g5) var(--g2);
-    border-radius: 2px;
-    background:
-      radial-gradient(circle at 50% 44%, var(--ghi) 0 0.14em, var(--g1) 0.2em, var(--g4) 0.34em, transparent 0.4em) 0 0 / 0.95em 0.95em round,
-      linear-gradient(155deg, var(--g2), var(--g3) 48%, var(--g2));
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 3.6em 4.8em -2em var(--hang), 0 0.4em 0.9em var(--hang);
+    padding: 6.6%;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
   }
   .piece-frame:hover,
   .piece-frame:focus-visible {
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 5em 6em -2.4em var(--hang), 0 0.6em 1.2em var(--hang);
-  }
-  .piece-carve {
-    display: block;
-    padding: 1.5em;
-    background:
-      var(--carve) 0 0 / 1.5em 1.5em round,
-      linear-gradient(160deg, var(--g4), var(--g5) 55%, var(--g4));
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 0.16em 0.3em rgba(0, 0, 0, 0.4);
+    box-shadow: none;
   }
   .piece-pic {
-    border: 0.85em solid;
-    border-color: var(--g5) var(--g4) var(--g2) var(--g4);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 0 0 0.5em var(--g2), 0 0 0 calc(0.5em + 1px) rgba(0, 0, 0, 0.4);
-    margin: 0.5em;
-  }
-  .piece-pic img {
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75);
-  }
-  /* the picture light: a brass tube on a short arm */
-  .piece-frame::before {
-    content: '';
-    position: absolute;
-    left: 30%;
-    right: 30%;
-    bottom: calc(100% + 0.55em + 12px);
-    height: 8px;
-    border-radius: 99px;
-    background: linear-gradient(180deg, var(--ghi), var(--g2) 40%, var(--g4));
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-  }
-  .piece-frame::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: calc(100% + 0.55em);
-    width: 3px;
-    height: 12px;
-    margin-left: -1.5px;
-    background: linear-gradient(90deg, var(--g2), var(--g4));
+    position: relative;
+    box-shadow: none;
   }
   .story-pic figcaption {
     display: grid;
     gap: 1px;
     width: fit-content;
     max-width: min(100%, 46ch);
-    margin-top: 22px;
-    padding: 10px 15px 11px;
-    border: 0;
-    border-radius: 2px;
-    background: #f7f3e6;
-    color: #55586c;
+    margin-top: 34px;
+    padding: 9px 13px 10px;
+    border: 1px solid var(--hair-2);
+    border-radius: 1px;
+    color: var(--dim);
     font: 400 12px/1.5 var(--body);
     letter-spacing: 0;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 8px 18px -8px var(--hang), 0 1px 2px var(--hang);
   }
   .story-pic figcaption b {
-    color: #171a2c;
+    color: var(--star);
     font: 500 14px/1.3 var(--body);
   }
   .story-pic figcaption i {
     font-style: normal;
     font-weight: 400;
   }
-
-  /* ---- About: the photographs hang in slim gilt frames with square corners ---- */
-  .about-photo-clip {
-    border: 7px solid;
-    border-color: var(--g1) var(--g3) var(--g5) var(--g2);
-    border-radius: 2px;
-    clip-path: inset(calc((1 - var(--p)) * 9%) calc((1 - var(--p)) * 9%) round 2px);
+  /* the rooftops close the page */
+  .cv-roofs {
+    position: relative;
+    left: 50%;
+    width: 100vw;
+    height: clamp(96px, 16vh, 168px);
+    margin-left: -50vw;
   }
-  .about-pic {
-    border: 4px solid;
-    border-color: var(--g1) var(--g3) var(--g5) var(--g2);
-    border-radius: 2px;
-  }
-  .about-noimg {
-    border: 1px dashed var(--hair-2);
+  .cv-roofs svg {
+    width: 100%;
+    height: 100%;
   }
 }
