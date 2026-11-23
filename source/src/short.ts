@@ -35,8 +35,8 @@ export function shortPage(rooms: string[]): string {
         </div>
         <button class="sp-plate" data-short-full>
           ${inkArrow(5)}
-          <span><b lang="fr">La Galaxie, la nuit</b></span>
-          <span>The Galaxy at Night, 2026. After Van Gogh, in code: 21,000 strokes.</span>
+          <span><b lang="fr"><span class="sp-nb">La Galaxie,</span> <span class="sp-nb">la nuit</span></b></span>
+          <span class="sp-what">The Galaxy at Night, 2026. After Van Gogh, in code: 21,000 strokes.</span>
           <span class="sp-how">Stir the sky. Each star opens a room, and the black hole opens the galaxy.</span>
           <span class="sp-go">Step inside <span aria-hidden="true">→</span></span>
         </button>

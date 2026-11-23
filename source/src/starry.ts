@@ -294,15 +294,30 @@ export function mountStarry(canvas: HTMLCanvasElement, ev: StarryEvents): (t: nu
 
   const toPaint = (e: PointerEvent | MouseEvent) => {
     const r = canvas.getBoundingClientRect();
-    return { x: ((e.clientX - r.left) / r.width) * PW, y: ((e.clientY - r.top) / r.height) * PH, cx: e.clientX - r.left, cy: e.clientY - r.top };
+    // reach: a finger is blunter than a mouse, so on touch a star answers within 22 px of screen however small the painting is shown
+    return { x: ((e.clientX - r.left) / r.width) * PW, y: ((e.clientY - r.top) / r.height) * PH, cx: e.clientX - r.left, cy: e.clientY - r.top, reach: finger ? (22 * PW) / r.width : 0 };
   };
-  /** Star index, -1 for the hole, or null for open sky or ground. */
-  const hit = (x: number, y: number): number | null => {
-    if (Math.hypot(x - HOLE.x, y - HOLE.y) < HOLE.r * 1.9) return -1;
-    for (let i = 0; i < STARS.length; i++) if (Math.hypot(x - STARS[i].x, y - STARS[i].y) < STARS[i].r * 1.05) return i;
-    return null;
+  let finger = false;
+  /** Star index, -1 for the hole, or null for open sky or ground. Where two reaches overlap the nearer one answers. */
+  const hit = (x: number, y: number, reach = 0): number | null => {
+    let best: number | null = null;
+    let near = Infinity;
+    const d0 = Math.hypot(x - HOLE.x, y - HOLE.y);
+    if (d0 < Math.max(HOLE.r * 1.9, reach)) {
+      best = -1;
+      near = d0;
+    }
+    for (let i = 0; i < STARS.length; i++) {
+      const d = Math.hypot(x - STARS[i].x, y - STARS[i].y);
+      if (d < Math.max(STARS[i].r * 1.05, reach) && d < near) {
+        best = i;
+        near = d;
+      }
+    }
+    return best;
   };
   const point = (e: PointerEvent) => {
+    finger = e.pointerType !== 'mouse';
     const p = toPaint(e);
     if (ptr.on && y_ok(p.y, p.x)) {
       // a moving pointer leaves fresh paint behind it
@@ -322,7 +337,7 @@ export function mountStarry(canvas: HTMLCanvasElement, ev: StarryEvents): (t: nu
     ptr.x = p.x;
     ptr.y = p.y;
     ptr.on = true;
-    const h = hit(p.x, p.y);
+    const h = hit(p.x, p.y, p.reach);
     if (h !== hover) {
       hover = h;
       canvas.style.cursor = h === null ? 'crosshair' : 'pointer';
@@ -344,7 +359,7 @@ export function mountStarry(canvas: HTMLCanvasElement, ev: StarryEvents): (t: nu
   canvas.addEventListener('pointerup', (e) => e.pointerType !== 'mouse' && window.setTimeout(leave, 900));
   canvas.addEventListener('click', (e) => {
     const p = toPaint(e);
-    const h = hit(p.x, p.y);
+    const h = hit(p.x, p.y, p.reach);
     if (h === -1) ev.onHole();
     else if (h !== null) {
       flare[h] = 1.6;

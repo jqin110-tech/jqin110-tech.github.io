@@ -5297,3 +5297,196 @@ dialog#short .sp-tip {
     padding: 6px 0 7px;
   }
 }
+
+/* ================= the sketchbook on a phone ================= */
+/* Every link is a full thumb tall, however small the word is written. */
+@media (max-width: 900px) {
+  dialog#short .sp-links a,
+  dialog#short .sp-facts dd a,
+  dialog#short .sp-more {
+    margin: -8px -10px;
+    padding: 11px 10px;
+    border-bottom: 0;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--hair-2);
+    text-underline-offset: 5px;
+  }
+  dialog#short .sp-links {
+    gap: 24px;
+  }
+  dialog#short .sp-copy {
+    margin: -8px 0;
+    padding: 10px 0;
+  }
+}
+/* One narrow column, in the order a reader with a thumb wants it: who he is, the painting as a small study with its note
+   written beside it, the three projects, how to reach him, and one wide button. */
+@media (max-width: 559px) {
+  .short-body {
+    font-size: 16px;
+  }
+  .sb {
+    padding: 6px 7px calc(10px + env(safe-area-inset-bottom, 0px)) 15px;
+  }
+  .sb-rings {
+    top: 16px;
+    bottom: 22px;
+    left: 2px;
+    width: 28px;
+    background-size: 28px 24px;
+  }
+  .sb-page .sp-room {
+    padding: 18px 16px 4px 27px;
+  }
+  dialog#short .sp {
+    align-items: stretch;
+    width: 100%;
+  }
+  dialog#short .sp-text h1 {
+    order: -4;
+    margin-bottom: 8px;
+    font-size: clamp(58px, 18.5vw, 80px);
+  }
+  dialog#short .sp-sub {
+    order: -3;
+    margin-bottom: 6px;
+    line-height: 1.45;
+  }
+  dialog#short .sp-lead {
+    order: -2;
+    max-width: none;
+    margin-bottom: 20px;
+    line-height: 1.45;
+  }
+  dialog#short .sp-bay-art {
+    order: -1;
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: 56% minmax(0, 1fr);
+    align-items: center;
+    gap: 0 12px;
+    width: auto;
+    margin-bottom: 20px;
+  }
+  /* the note is written to the width of the phone, so its lines break the same way on every one */
+  dialog#short .sp-plate {
+    margin-top: 13%;
+    padding: 0;
+    font-size: min(21px, 5.5vw);
+  }
+  dialog#short .sp-plate b {
+    font-size: min(30px, 7.6vw);
+    line-height: 0.92;
+  }
+  .sp-nb,
+  dialog#short .sp-go {
+    white-space: nowrap;
+  }
+  dialog#short .sp-what {
+    display: none;
+  }
+  dialog#short .sp-how {
+    display: block;
+    margin-top: 6px;
+  }
+  dialog#short .sp-go {
+    margin-top: 6px;
+    font-size: min(25px, 6.2vw);
+  }
+  dialog#short .ink-arrow {
+    top: -27px;
+    left: -12px;
+    width: 26px;
+    height: 43px;
+    transform: rotate(-104deg);
+  }
+  dialog#short .sp-h,
+  dialog#short .sp-facts dt {
+    font-size: 26px;
+  }
+  dialog#short .sp-h {
+    margin-bottom: 6px;
+  }
+  dialog#short .sp-work {
+    margin-bottom: 16px;
+  }
+  dialog#short .sp-work li {
+    gap: 2px 12px;
+    padding: 10px 0 12px;
+  }
+  dialog#short .sp-work b {
+    font-size: 17px;
+  }
+  dialog#short .sp-work p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  dialog#short .sp-links {
+    grid-row: 1;
+  }
+  /* label over value: the address, its copy word and the GitHub link then share one line */
+  dialog#short .sp-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin-bottom: 22px;
+  }
+  dialog#short .sp-facts dd {
+    gap: 0 24px;
+    margin-bottom: 10px;
+  }
+  dialog#short .sp-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  dialog#short .sp-actions .btn-primary {
+    width: 100%;
+    min-height: 56px;
+    font-size: 31px;
+  }
+  dialog#short .sp-more {
+    align-self: center;
+    margin: 0;
+  }
+  .sb-page .sp-roofs {
+    height: 76px;
+  }
+}
+/* the narrowest phones: no room for a note beside the painting, so it goes back underneath */
+@media (max-width: 350px) {
+  dialog#short .sp-text h1 {
+    font-size: 54px;
+  }
+  dialog#short .sp-bay-art {
+    display: block;
+    align-self: center;
+    width: 78%;
+  }
+  dialog#short .sp-plate {
+    margin-top: 22px;
+    padding-left: 40px;
+    font-size: 20px;
+  }
+  dialog#short .sp-plate b {
+    font-size: 28px;
+  }
+  dialog#short .sp-go {
+    font-size: 24px;
+  }
+  dialog#short .ink-arrow {
+    top: -24px;
+    left: 0;
+    width: 34px;
+    height: 56px;
+    transform: none;
+  }
+  dialog#short .sp-facts dd {
+    gap: 0 16px;
+  }
+  dialog#short .sp-actions .btn-primary {
+    font-size: 27px;
+  }
+}
