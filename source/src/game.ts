@@ -303,10 +303,19 @@ export class Game {
     const hot = (0.55 + 0.45 * (1 - smooth(0.1, 0.32, k))) * (1 - smooth(0.25, 0.95, grow));
     return { x: Math.cos(a) * r, y: Math.sin(a) * r, e, r, a, w, hot, grow };
   }
-  /** Where the waiting point sits on the title screen: centred on big screens, clear of the title text on small ones. */
+  /** Set when the opening starts without the title screen ever being shown: the point is then in the middle from the first frame. */
+  startCentred = false;
+  /**
+   * Where the point is. On the title screen it waits clear of the title text on small screens (centred on big ones).
+   * Once the opening starts it glides to the middle while the sky falls into it, so the blast itself is always centred.
+   */
   private singularity() {
     const { W, H } = this;
-    return { cx: H < 520 ? W * 0.82 : W / 2, cy: H < 520 ? H * 0.3 : W < 700 ? H * 0.2 : H / 2 };
+    const title = { cx: H < 520 ? W * 0.82 : W / 2, cy: H < 520 ? H * 0.3 : W < 700 ? H * 0.2 : H / 2 };
+    if (this.phase === 'void' && !this.startCentred) return title;
+    const c = this.toScreen(0, 0);
+    const m = this.startCentred || this.phase !== 'bang' ? 1 : smooth(0, 0.72, 1 + this.bangT / CHARGE);
+    return { cx: title.cx + (c.x - title.cx) * m, cy: title.cy + (c.y - title.cy) * m };
   }
   /** Screen offset during the opening: the galaxy's centre starts on the title-screen point and eases to its real place. */
   private bangDrift(bk: number) {

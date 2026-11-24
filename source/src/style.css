@@ -5911,3 +5911,29 @@ dialog#short .sp-actions .btn-primary {
     top: calc(160px + env(safe-area-inset-top));
   }
 }
+
+/* a phone on its side has no height to spare: the guide is one quiet line along the bottom, between the stick and Land */
+@media (max-height: 520px) {
+  .guide {
+    top: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 2px 12px;
+    max-width: calc(100% - 360px);
+    padding: 7px 16px;
+    border-radius: 16px;
+    translate: -50% 8px;
+  }
+  .guide-what {
+    font-size: 13px;
+  }
+  .guide-how {
+    font-size: 9.5px;
+  }
+  .guide.show + .toast {
+    top: calc(58px + env(safe-area-inset-top));
+  }
+}

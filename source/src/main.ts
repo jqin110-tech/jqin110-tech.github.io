@@ -210,7 +210,10 @@ function paintShortArt(now: number) {
 /** Play the game, from the short page: whoever pressed that has already said start, so the title screen is not asked to say it again. */
 function playFromShort() {
   short.close();
-  if (!titleCard.hidden) $<HTMLButtonElement>('[data-start]').click();
+  if (titleCard.hidden) return;
+  // the title screen keeps its point of light clear of the title text; nobody saw it there, so the opening starts in the middle
+  game.startCentred = true;
+  $<HTMLButtonElement>('[data-start]').click();
 }
 /** The plain address (and #short) opens the short version. Any other address goes where it says. */
 const shortFirst = () => location.hash === '' || location.hash === '#short';
