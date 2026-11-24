@@ -41,7 +41,7 @@
         </div>
         <div class="hud-right">
           <details class="checklist">
-            <summary class="pill"><span class="mono">FOUND</span><span class="meter" aria-hidden="true"><span class="meter-fill"></span></span><span class="mono" data-crit-count>0/7</span><span class="sr-only"> strengths discovered</span></summary>
+            <summary class="pill"><span class="mono">STRENGTHS FOUND</span><span class="meter" aria-hidden="true"><span class="meter-fill"></span></span><span class="mono" data-crit-count>0/7</span><span class="sr-only"> strengths discovered</span></summary>
             <div class="checklist-panel">
               <p class="panel-title mono">Discoveries · what I bring</p>
               <ul data-crit-list></ul>
@@ -65,7 +65,7 @@
           <p class="title-sub" data-headline></p>
           <p class="title-line">A resume you can fly through. Six stops along a golden spiral, and a black hole in the middle that leads to light mode.</p>
           <div class="title-actions">
-            <button class="btn btn-primary" data-start>Start the big bang</button>
+            <button class="btn btn-primary" data-start>Play the game</button>
             <a class="title-link" href="#resume" data-to-resume>or read the resume <span aria-hidden="true">↓</span></a>
           </div>
           <p class="hint mono" data-hint>Arrows or WASD to fly · E to land · or just click a planet</p>
@@ -75,6 +75,10 @@
 
       <div class="stick" data-stick aria-hidden="true"><i></i></div>
       <button class="land" data-land hidden></button>
+      <div class="guide" data-guide hidden>
+        <p class="guide-what">Each planet is a part of my resume.</p>
+        <p class="guide-how mono" data-guide-how>Arrow keys or WASD to fly · E to land · or click a planet</p>
+      </div>
       <div class="toast mono" role="status" aria-live="polite" data-toast></div>
 
       <div class="sheet-veil" data-menu-close></div>
@@ -82,7 +86,7 @@
         <div class="sheet-head"><span class="mono">Go to</span><button class="sheet-close" data-menu-close>Close</button></div>
         <ol data-travel></ol>
         <div class="sheet-more">
-          <button class="pill" data-short data-menu-close>← First page</button>
+          <button class="pill" data-short data-menu-close>← Home</button>
           <a class="pill" href="#resume" data-to-resume>Read the resume ↓</a>
           <button class="pill" data-fullscreen hidden>Full screen</button>
         </div>
@@ -91,10 +95,10 @@
 
     <main id="resume" class="cv" tabindex="-1" aria-labelledby="cv-name">
       <nav class="cv-nav" aria-label="Resume sections">
-        <a class="cv-mark" href="#top" data-to-top><span data-name></span></a>
+        <a class="cv-mark" href="#short" data-short title="Home"><span data-name></span></a>
         <ul class="cv-tabs" data-cv-tabs></ul>
         <button class="mode mode-compact" data-mode role="switch" aria-checked="true" aria-label="Dark mode" title="Dark mode"><span class="mode-track" aria-hidden="true"><i></i></span></button>
-        <a class="pill cv-play" href="#top" data-to-top><span class="mono">PLAY ↑</span></a>
+        <a class="pill cv-play" href="#top" data-to-top><span class="mono">PLAY<span class="cv-play-more"> THE GAME</span> ↑</span></a>
       </nav>
       <div class="cv-body" data-cv></div>
     </main>

@@ -177,7 +177,7 @@ export function siteResume(): string {
     <p class="cv-actions">
       ${copyButton(r.email, 'pill pill-solid')}<a class="print-url" href="mailto:${esc(r.email)}">${esc(r.email)}</a>
       ${r.links.map((l) => `<a class="pill" href="${esc(l.url)}" target="_blank" rel="noopener"><span class="screen-only">${esc(l.label)} ↗</span><span class="print-url">${esc(l.url.replace('https://', ''))}</span></a>`).join('')}
-<button class="pill" data-quick>Quick resume</button>
+<button class="pill" data-quick>One-page resume</button>
       <button class="pill" data-print>Save as PDF</button>
     </p>
   </header>
@@ -269,7 +269,7 @@ export function quickResume(): string {
   const j = jakes;
   const items = (xs: readonly string[]) => `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
   return `
-    <p class="q-top"><span class="mono">Quick resume</span><button class="q-close" data-quick-close>Close <kbd>Esc</kbd></button></p>
+    <p class="q-top"><span class="mono">One-page resume</span><button class="q-close" data-quick-close>Close <kbd>Esc</kbd></button></p>
     <article class="jk">
       <h1 id="quick-name">${esc(j.name)}</h1>
       <p class="jk-contact">${j.contact.map((c) => (c.url.startsWith('mailto:') ? copyButton(c.label, 'jk-copy') : `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)}</a>`)).join(' <span aria-hidden="true">|</span> ')}</p>

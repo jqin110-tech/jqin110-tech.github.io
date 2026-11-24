@@ -5834,3 +5834,80 @@ dialog#short .sp-actions .btn-primary {
     display: none;
   }
 }
+
+/* ================= the main site: said in plain words ================= */
+/* the guide: what this place is and how to move in it. It stays until the visitor has flown or landed once */
+.guide {
+  position: absolute;
+  left: 50%;
+  top: calc(84px + env(safe-area-inset-top));
+  translate: -50% -8px;
+  z-index: 4;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 13px 24px 12px;
+  border: 1px solid var(--hair);
+  border-radius: 20px;
+  background: var(--glass-2);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.5s, translate 0.5s;
+  pointer-events: none;
+}
+.guide.show {
+  opacity: 1;
+  translate: -50% 0;
+}
+.guide p {
+  margin: 0;
+}
+.guide-what {
+  color: var(--star);
+  font: 400 16px/1.3 var(--body);
+}
+.guide-how {
+  color: var(--dim);
+  font-size: 10.5px;
+  line-height: 1.6;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+/* a notice that arrives while the guide is up sits under it, not on it */
+.guide.show + .toast {
+  top: calc(170px + env(safe-area-inset-top));
+}
+.at-title .guide {
+  display: none;
+}
+/* the bar of planets says what it does */
+@media (pointer: fine) {
+  .travel ol::before {
+    content: 'Fly to';
+    align-self: center;
+    margin-right: 6px;
+    color: var(--dim);
+    font: 400 10px/1 var(--mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+}
+@media (max-width: 720px) {
+  .cv-play-more {
+    display: none;
+  }
+  .guide {
+    top: calc(64px + env(safe-area-inset-top));
+    padding: 11px 16px 10px;
+  }
+  .guide-what {
+    font-size: 15px;
+  }
+  .guide.show + .toast {
+    top: calc(160px + env(safe-area-inset-top));
+  }
+}

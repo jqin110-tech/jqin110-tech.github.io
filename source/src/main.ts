@@ -76,6 +76,29 @@ function toast(msg: string) {
   toastTimer = window.setTimeout(() => toastEl.classList.remove('show'), 3600);
 }
 
+// ---------- the guide: what this place is and how to move in it ----------
+// It stays until the visitor has done it once. A hint that leaves after four seconds is gone before it is read.
+const guide = $('[data-guide]');
+let guideTimer = 0;
+function showGuide() {
+  if (coarse.matches) $('[data-guide-how]').textContent = 'Stick to fly · tap a planet to land';
+  clearTimeout(guideTimer);
+  guideTimer = 0;
+  guide.hidden = false;
+  requestAnimationFrame(() => guide.classList.add('show'));
+}
+/** The visitor has started to fly (or has landed): the guide leaves a moment later, and the secret in the middle is pointed out. */
+function endGuide(after: number) {
+  if (guide.hidden || guideTimer) return;
+  guideTimer = window.setTimeout(() => {
+    guide.classList.remove('show');
+    window.setTimeout(() => (guide.hidden = true), 600);
+    window.setTimeout(() => {
+      if (!modalOpen() && !goingDown && scrolled < 0.5) toast(game.isLight ? 'The white hole in the centre leads back to dark mode.' : 'The black hole in the centre leads to light mode.');
+    }, 1500);
+  }, after);
+}
+
 // ---------- game ----------
 let current: Zone | null = null;
 let bangToast = false;
@@ -96,13 +119,7 @@ const game = new Game(canvas, {
   onReady() {
     gameView.classList.add('live');
     syncMap();
-    if (bangToast) {
-      toast(coarse.matches ? 'Use the stick to fly. Tap a planet to land.' : 'Fly with the arrow keys, or click a planet.');
-      // then point out the secret in the middle
-      setTimeout(() => {
-        if (!modalOpen() && scrolled < 0.5) toast(game.isLight ? 'The white hole in the centre leads back to dark mode.' : 'The black hole in the centre leads to light mode.');
-      }, 4400);
-    }
+    if (bangToast) showGuide();
     bangToast = false;
   },
 });
@@ -216,6 +233,7 @@ function openShort() {
 document.addEventListener('click', (e) => {
   const el = e.target as HTMLElement;
   if (el.closest('[data-short]')) {
+    e.preventDefault();
     openShort();
     setHash('');
   } else if (el.closest('[data-short-full]')) playFromShort();
@@ -309,6 +327,7 @@ const PLACES: Partial<Record<Zone['id'], SceneFactory>> = {
   signal: postScene,
 };
 function openRoom(z: Zone) {
+  endGuide(0);
   const i = zones.indexOf(z);
   const n = (k: number) => String(k + 1).padStart(2, '0');
   $('[data-room-kicker]').textContent = `${n(i)} · ${z.section}`;
@@ -482,6 +501,7 @@ addEventListener('keydown', (e) => {
     return;
   }
   if (!gameHasFocus()) return;
+  if (GAME_KEYS.has(e.code)) endGuide(3500);
   if (GAME_KEYS.has(e.code)) {
     e.preventDefault();
     game.keyDown(e.code);
@@ -626,8 +646,12 @@ $$('[data-to-top]').forEach((a) =>
     e.preventDefault();
     scrollTo({ top: 0, behavior: smooth() });
     canvas.focus({ preventScroll: true });
+    // Play the game means play: if the title screen is still up, it does not ask a second time
+    if (a.classList.contains('cv-play') && !titleCard.hidden) $<HTMLButtonElement>('[data-start]').click();
   }),
 );
+// flying by pointer (the stick, a click on open space, a planet in the bar) also counts as having started
+gameView.addEventListener('pointerdown', (e) => playing && !(e.target as HTMLElement).closest('.hud') && endGuide(3500), true);
 $$<HTMLAnchorElement>('.cv-tabs a').forEach((a) =>
   a.addEventListener('click', (e) => {
     e.preventDefault();
