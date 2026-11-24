@@ -602,8 +602,10 @@ export class Game {
   // ---------- sizing ----------
   private exploreZoom() {
     // pulled back far enough that the next planet and the route are usually in view
-    // a phone held sideways is short, so it pulls back further to show more of the sky around you
-    if (this.H < 520) return 0.46;
+    // a phone held sideways is short, so it pulls back further to show more of the sky around you.
+    // Safari's bars can take another 50 to 90 px of that height and a page cannot hide them, so the view
+    // pulls back in step: the same stretch of sky shows with the bars up as with the whole screen.
+    if (this.H < 520) return Math.max(0.36, Math.min(0.46, this.H / 848));
     return Math.max(0.62, Math.min(1.02, Math.min(this.W, this.H) / 840));
   }
   /** Device pixels per sprite pixel: always a whole number, so the astronaut's pixels stay square. */

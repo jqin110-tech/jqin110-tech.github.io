@@ -5937,3 +5937,52 @@ dialog#short .sp-actions .btn-primary {
     top: calc(58px + env(safe-area-inset-top));
   }
 }
+
+/* A sideways iPhone with Safari's bars showing leaves 300 to 340 px of height, and a page cannot hide those bars.
+   The controls give some of their size back so the sky keeps the room. */
+@media (pointer: coarse) and (max-height: 360px) {
+  .hud {
+    padding-top: max(6px, env(safe-area-inset-top));
+  }
+  .game-view .stick {
+    width: 104px;
+    height: 104px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+  .game-view .stick i {
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+  }
+  .game-view .land {
+    width: 80px;
+    height: 80px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    gap: 3px;
+    box-shadow: 0 0 0 5px rgba(var(--dust-rgb), 0.07), 0 8px 26px rgba(0, 0, 0, 0.45);
+  }
+  .game-view .land b {
+    font-size: 12px;
+  }
+  .game-view .land span {
+    max-width: 64px;
+    font-size: 11px;
+  }
+  .guide {
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    max-width: calc(100% - 300px);
+    padding: 6px 14px;
+  }
+}
+/* the title screen at that height: the name must stay clear of the row above it */
+@media (max-height: 360px) {
+  .title-line {
+    display: none;
+  }
+  .title-card {
+    padding-bottom: 14px;
+  }
+  .title-card .scroll-cue {
+    display: none;
+  }
+}
