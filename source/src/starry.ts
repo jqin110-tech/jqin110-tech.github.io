@@ -295,9 +295,11 @@ export function mountStarry(canvas: HTMLCanvasElement, ev: StarryEvents): (t: nu
   const toPaint = (e: PointerEvent | MouseEvent) => {
     const r = canvas.getBoundingClientRect();
     // reach: a finger is blunter than a mouse, so on touch a star answers within 22 px of screen however small the painting is shown
-    return { x: ((e.clientX - r.left) / r.width) * PW, y: ((e.clientY - r.top) / r.height) * PH, cx: e.clientX - r.left, cy: e.clientY - r.top, reach: finger ? (22 * PW) / r.width : 0 };
+    return { x: ((e.clientX - r.left) / r.width) * PW, y: ((e.clientY - r.top) / r.height) * PH, cx: e.clientX - r.left, cy: e.clientY - r.top, reach: finger ? (22 * PW) / r.width : 0, small: r.width < SMALL };
   };
   let finger = false;
+  /** Shown smaller than this (a phone), the painting is one button: its stars are too close together to tell apart, so any touch starts the game. */
+  const SMALL = 170;
   /** Star index, -1 for the hole, or null for open sky or ground. Where two reaches overlap the nearer one answers. */
   const hit = (x: number, y: number, reach = 0): number | null => {
     let best: number | null = null;
@@ -337,7 +339,7 @@ export function mountStarry(canvas: HTMLCanvasElement, ev: StarryEvents): (t: nu
     ptr.x = p.x;
     ptr.y = p.y;
     ptr.on = true;
-    const h = hit(p.x, p.y, p.reach);
+    const h = p.small ? -1 : hit(p.x, p.y, p.reach);
     if (h !== hover) {
       hover = h;
       canvas.style.cursor = h === null ? 'crosshair' : 'pointer';
@@ -359,7 +361,7 @@ export function mountStarry(canvas: HTMLCanvasElement, ev: StarryEvents): (t: nu
   canvas.addEventListener('pointerup', (e) => e.pointerType !== 'mouse' && window.setTimeout(leave, 900));
   canvas.addEventListener('click', (e) => {
     const p = toPaint(e);
-    const h = hit(p.x, p.y, p.reach);
+    const h = p.small ? -1 : hit(p.x, p.y, p.reach);
     if (h === -1) ev.onHole();
     else if (h !== null) {
       flare[h] = 1.6;

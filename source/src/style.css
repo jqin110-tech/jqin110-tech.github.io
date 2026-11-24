@@ -4321,6 +4321,7 @@ dialog#room.museum::backdrop {
   /* top bar */
   .game-view .hud-right .checklist,
   .game-view .hud-right .mode-compact,
+  .game-view .hud-right > .hud-home,
   .game-view .hud-right > [data-to-resume] {
     display: none;
   }
@@ -4473,8 +4474,9 @@ dialog#room.museum::backdrop {
     padding-top: 12px;
     border-top: 1px solid var(--hair);
   }
-  .game-view .sheet-more.one {
-    grid-template-columns: 1fr;
+  /* the way back to the first page and the resume share a row; full screen, where the phone allows it, takes the next */
+  .game-view .sheet-more [data-fullscreen] {
+    grid-column: 1 / -1;
   }
   .game-view .sheet-more .pill,
   .game-view .sheet-more .pill:hover {
@@ -5298,13 +5300,301 @@ dialog#short .sp-tip {
   }
 }
 
-/* ================= the sketchbook on a phone ================= */
-/* Every link is a full thumb tall, however small the word is written. */
-@media (max-width: 900px) {
+/* ================= the short page: a game door anyone can find, and nothing to scroll ================= */
+/* Two doors, each said in plain words. Under the painting: this is a game, and the button that starts it. Under the
+   text: the full portfolio and the one-page resume. Everything is sized from the window (the --s- values below), so the
+   page fits one screen on a computer and on a phone held upright. */
+dialog#short {
+  --s-frame: clamp(150px, calc((100dvh - 400px) / 1.32), 350px);
+  --s-h1: clamp(68px, 7.6vw, 104px);
+  --s-top: clamp(34px, 6vh, 60px);
+  --s-lead: 30px;
+  --s-li: 11px;
+  --s-work: 22px;
+  --s-facts: 28px;
+  --s-roofs: clamp(70px, 12.5vh, 128px);
+  --s-room: clamp(14px, 2.4vh, 26px);
+  --s-note: 22px;
+  --s-play: 33px;
+}
+
+/* ---- the note under the painting: what it is, and what to press ---- */
+dialog#short .sp-plate {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  width: auto;
+  margin-top: 24px;
+  padding-left: 0;
+  font-size: var(--s-note);
+  cursor: default;
+}
+/* the arrow stands in the margin, so the note lines up with the frame above it */
+dialog#short .ink-arrow {
+  left: -44px;
+}
+dialog#short .sp-plate:hover {
+  transform: none;
+}
+dialog#short .sp-plate b {
+  font-size: calc(var(--s-note) * 1.5);
+}
+.sp-say {
+  max-width: 27ch;
+}
+.sp-nb {
+  white-space: nowrap;
+}
+/* the one filled-in box on the page: the way into the game */
+dialog#short .sp-play {
+  gap: 11px;
+  min-height: calc(var(--s-play) * 1.62);
+  margin-top: 10px;
+  padding: 0 24px 3px 20px;
+  border: 2px solid var(--star);
+  border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px;
+  background: var(--star);
+  color: var(--void);
+  font: 400 var(--s-play) / 1 var(--hand);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+dialog#short .sp-play:hover {
+  padding: 0 30px 3px 26px;
+}
+.sp-tri {
+  flex: none;
+  width: 0.46em;
+  height: 0.52em;
+  margin-top: 0.1em;
+  fill: currentColor;
+}
+.sp-brief,
+.sp-narrow {
+  display: none;
+}
+/* the page takes the focus when it opens, so no button starts out ringed; Tab then goes to Play the game first */
+.short-body:focus {
+  outline: none;
+}
+
+/* ---- sizes from the window ---- */
+dialog#short .sp-room {
+  padding-block: var(--s-room) clamp(6px, 1.4vh, 18px);
+}
+dialog#short .sp-text {
+  padding-top: var(--s-top);
+}
+dialog#short .sp-text h1 {
+  font-size: var(--s-h1);
+}
+dialog#short .sp-lead {
+  margin-bottom: var(--s-lead);
+}
+dialog#short .sp-work {
+  margin-bottom: var(--s-work);
+}
+dialog#short .sp-work li {
+  padding: var(--s-li) 0 calc(var(--s-li) + 1px);
+}
+dialog#short .sp-facts {
+  margin-bottom: var(--s-facts);
+}
+dialog#short .sp-roofs {
+  height: var(--s-roofs);
+}
+dialog#short .sp-actions .btn-primary {
+  min-height: 48px;
+  border-width: 1.5px;
+  font-size: 27px;
+}
+
+/* ---- two columns: any window wide enough to hold them. The painting takes its size from the height of the window ---- */
+@media (min-width: 640px) {
+  dialog#short .sp {
+    display: grid;
+    grid-template-columns: var(--s-frame) minmax(0, 540px);
+    gap: clamp(30px, 7vw, 128px);
+    align-items: start;
+    margin: auto;
+  }
+  dialog#short .sp-text {
+    display: block;
+  }
+  dialog#short .sp-text h1,
+  dialog#short .sp-sub,
+  dialog#short .sp-bay-art {
+    order: 0;
+  }
+  dialog#short .sp-text h1 {
+    margin-bottom: 10px;
+  }
+  dialog#short .sp-sub {
+    margin-bottom: 8px;
+  }
+  dialog#short .sp-bay-art {
+    align-self: start;
+    width: auto;
+    margin-bottom: 0;
+  }
+}
+@media (min-width: 640px) and (max-width: 900px) {
+  dialog#short {
+    --s-frame: clamp(150px, min(calc((100dvh - 400px) / 1.32), 33vw), 350px);
+    --s-h1: clamp(52px, 8vw, 72px);
+    --s-roofs: clamp(36px, 6vh, 64px);
+    --s-play: 27px;
+  }
+  dialog#short .sp {
+    gap: clamp(26px, 5vw, 56px);
+  }
+  dialog#short .ink-arrow {
+    display: none;
+  }
+  dialog#short .sp-facts dd {
+    gap: 4px 14px;
+  }
+  dialog#short .sp-links {
+    gap: 20px;
+  }
+}
+/* shorter windows: tighter, a step at a time */
+@media (min-width: 640px) and (max-height: 800px) {
+  dialog#short {
+    --s-frame: clamp(150px, min(calc((100dvh - 384px) / 1.32), 33vw), 350px);
+    --s-h1: clamp(52px, 6vw, 76px);
+    --s-top: 26px;
+    --s-lead: 18px;
+    --s-li: 8px;
+    --s-work: 16px;
+    --s-facts: 18px;
+    --s-roofs: clamp(40px, 8vh, 64px);
+    --s-note: 20px;
+    --s-play: 29px;
+  }
+  dialog#short .sp-plate {
+    margin-top: 18px;
+  }
+  dialog#short .sp-actions .btn-primary {
+    min-height: 44px;
+    font-size: 25px;
+  }
+}
+@media (min-width: 640px) and (max-height: 690px) {
+  dialog#short {
+    --s-frame: clamp(150px, min(calc((100dvh - 336px) / 1.32), 33vw), 350px);
+    --s-h1: 54px;
+    --s-top: 14px;
+    --s-lead: 12px;
+    --s-li: 6px;
+    --s-work: 12px;
+    --s-facts: 12px;
+    --s-roofs: 40px;
+    --s-room: 12px;
+  }
+  dialog#short .sp-ttl {
+    display: none;
+  }
+}
+/* a phone on its side, or a very short window: one line for each project, and only what is needed. The left column
+   is wider than the painting now, so the note under it still has room for its words */
+@media (min-width: 640px) and (max-height: 560px) {
+  dialog#short {
+    --s-frame: clamp(92px, calc((100dvh - 226px) / 1.32), 220px);
+    --s-h1: 46px;
+    --s-top: 6px;
+    --s-li: 4px;
+    --s-work: 8px;
+    --s-facts: 8px;
+    --s-roofs: 0px;
+    --s-room: 8px;
+    --s-note: 18px;
+    --s-play: 24px;
+  }
+  dialog#short .sp {
+    grid-template-columns: clamp(176px, 24vw, 230px) minmax(0, 540px);
+    gap: clamp(24px, 4vw, 56px);
+  }
+  dialog#short .sp-hang {
+    width: var(--s-frame);
+    margin-inline: auto;
+  }
+  dialog#short .sp-rail {
+    display: none;
+  }
+  dialog#short .sp-lead,
+  dialog#short .sp-long,
+  dialog#short .sp-h,
+  dialog#short .sp-facts dt:first-of-type,
+  dialog#short .sp-facts dd:first-of-type {
+    display: none;
+  }
+  dialog#short .sp-brief {
+    display: inline;
+  }
+  dialog#short .sp-plate {
+    justify-items: center;
+    margin-top: 8px;
+    padding-left: 0;
+    line-height: 1.02;
+    text-align: center;
+  }
+  dialog#short .ink-arrow {
+    display: none;
+  }
+  dialog#short .sp-play {
+    min-height: 44px;
+    margin-top: 4px;
+    padding: 0 16px 3px 13px;
+  }
+  dialog#short .sp-play:hover {
+    padding: 0 16px 3px 13px;
+  }
+  dialog#short .sp-actions .btn-primary {
+    min-height: 42px;
+    font-size: 23px;
+  }
+}
+@media (min-width: 640px) and (max-height: 400px) {
+  dialog#short {
+    --s-h1: 40px;
+    --s-top: 0px;
+    --s-li: 3px;
+    --s-work: 4px;
+    --s-facts: 4px;
+    --s-room: 4px;
+  }
+  .sb {
+    padding-block: 6px 8px;
+  }
+  .sb-rings {
+    top: 16px;
+    bottom: 18px;
+  }
+  dialog#short .sp-text h1 {
+    margin-bottom: 6px;
+  }
+  dialog#short .sp-sub {
+    margin-bottom: 4px;
+  }
+  dialog#short .sp-work b {
+    line-height: 1.3;
+  }
+  dialog#short .sp-work p {
+    line-height: 1.3;
+  }
+  dialog#short .sp-actions .btn-primary {
+    min-height: 40px;
+  }
+}
+
+/* ---- a finger: every link is a full thumb tall, however small the word is written ---- */
+@media (max-width: 900px), (pointer: coarse) {
   dialog#short .sp-links a,
   dialog#short .sp-facts dd a,
   dialog#short .sp-more {
-    margin: -8px -10px;
+    margin: -11px -10px;
     padding: 11px 10px;
     border-bottom: 0;
     text-decoration: underline;
@@ -5316,177 +5606,231 @@ dialog#short .sp-tip {
     gap: 24px;
   }
   dialog#short .sp-copy {
-    margin: -8px 0;
+    margin: -10px 0;
     padding: 10px 0;
   }
 }
-/* One narrow column, in the order a reader with a thumb wants it: who he is, the painting as a small study with its note
-   written beside it, the three projects, how to reach him, and one wide button. */
-@media (max-width: 559px) {
+
+/* ---- a phone held upright: one column that fits the screen ---- */
+/* Who he is, the painting with its note and the play button beside it, three projects at one line each, how to reach
+   him, and the two ways to read more. The painting takes whatever height the rest leaves: the number taken from the
+   height of the screen in --s-frame is the height of everything else, and each step below hides a line and lowers it. */
+@media (max-width: 639px) {
+  dialog#short {
+    --s-frame: clamp(100px, calc((100dvh - 478px) / 1.32), 168px);
+    --s-h1: clamp(46px, 15.5vw, 64px);
+    --s-lead: 10px;
+    --s-li: 4px;
+    --s-work: 8px;
+    --s-facts: 6px;
+    --s-roofs: 0px;
+    --s-room: 12px;
+  }
   .short-body {
-    font-size: 16px;
+    font-size: 15px;
   }
   .sb {
-    padding: 6px 7px calc(10px + env(safe-area-inset-bottom, 0px)) 15px;
+    padding: 6px 7px calc(8px + env(safe-area-inset-bottom, 0px)) 15px;
   }
   .sb-rings {
     top: 16px;
-    bottom: 22px;
+    bottom: 20px;
     left: 2px;
     width: 28px;
     background-size: 28px 24px;
   }
-  .sb-page .sp-room {
-    padding: 18px 16px 4px 27px;
+  dialog#short .sp-room {
+    padding: var(--s-room) 15px 6px 27px;
   }
   dialog#short .sp {
+    display: flex;
+    flex-direction: column;
     align-items: stretch;
+    gap: 0;
     width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+  dialog#short .sp-text {
+    display: contents;
   }
   dialog#short .sp-text h1 {
     order: -4;
-    margin-bottom: 8px;
-    font-size: clamp(58px, 18.5vw, 80px);
+    margin-bottom: 4px;
   }
   dialog#short .sp-sub {
     order: -3;
-    margin-bottom: 6px;
-    line-height: 1.45;
+    margin-bottom: 3px;
+    line-height: 1.4;
   }
   dialog#short .sp-lead {
     order: -2;
     max-width: none;
-    margin-bottom: 20px;
-    line-height: 1.45;
+    line-height: 1.4;
   }
   dialog#short .sp-bay-art {
     order: -1;
     align-self: stretch;
     display: grid;
-    grid-template-columns: 56% minmax(0, 1fr);
+    grid-template-columns: var(--s-frame) minmax(0, 1fr);
     align-items: center;
-    gap: 0 12px;
+    gap: 0 16px;
     width: auto;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
   }
-  /* the note is written to the width of the phone, so its lines break the same way on every one */
+  /* the note and the button are written to the width of their column, so they fit beside the painting on any phone */
   dialog#short .sp-plate {
+    container-type: inline-size;
+    justify-items: stretch;
     margin-top: 13%;
     padding: 0;
-    font-size: min(21px, 5.5vw);
+    font-size: 19px;
+    font-size: min(21px, 11.6cqw);
+    line-height: 1.05;
   }
-  dialog#short .sp-plate b {
-    font-size: min(30px, 7.6vw);
-    line-height: 0.92;
-  }
-  .sp-nb,
-  dialog#short .sp-go {
-    white-space: nowrap;
-  }
-  dialog#short .sp-what {
+  dialog#short .sp-ttl {
     display: none;
   }
-  dialog#short .sp-how {
-    display: block;
-    margin-top: 6px;
+  dialog#short .sp-say {
+    max-width: none;
   }
-  dialog#short .sp-go {
-    margin-top: 6px;
-    font-size: min(25px, 6.2vw);
+  dialog#short .sp-play {
+    gap: 0.34em;
+    min-height: 48px;
+    margin-top: 8px;
+    padding: 0 8px 3px;
+    font-size: 23px;
+    font-size: min(28px, calc((100cqw - 20px) / 6));
+  }
+  dialog#short .sp-play:hover {
+    padding: 0 8px 3px;
   }
   dialog#short .ink-arrow {
     top: -27px;
-    left: -12px;
+    left: -14px;
     width: 26px;
     height: 43px;
     transform: rotate(-104deg);
   }
-  dialog#short .sp-h,
-  dialog#short .sp-facts dt {
-    font-size: 26px;
-  }
   dialog#short .sp-h {
-    margin-bottom: 6px;
-  }
-  dialog#short .sp-work {
-    margin-bottom: 16px;
+    display: none;
   }
   dialog#short .sp-work li {
-    gap: 2px 12px;
-    padding: 10px 0 12px;
+    gap: 0 12px;
   }
   dialog#short .sp-work b {
-    font-size: 17px;
+    font-size: 16px;
+    line-height: 1.3;
   }
   dialog#short .sp-work p {
     grid-column: 1 / -1;
     grid-row: 2;
-    font-size: 15px;
-    line-height: 1.45;
+    overflow: hidden;
+    font-size: 13.5px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  dialog#short .sp-long,
+  dialog#short .sp-wide {
+    display: none;
+  }
+  dialog#short .sp-brief,
+  dialog#short .sp-narrow {
+    display: inline;
   }
   dialog#short .sp-links {
     grid-row: 1;
   }
-  /* label over value: the address, its copy word and the GitHub link then share one line */
+  /* no labels here: a list of languages and an email address say what they are */
   dialog#short .sp-facts {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
-    margin-bottom: 22px;
+  }
+  dialog#short .sp-facts dt {
+    display: none;
   }
   dialog#short .sp-facts dd {
-    gap: 0 24px;
-    margin-bottom: 10px;
+    align-items: center;
+    gap: 0 22px;
+    min-height: 30px;
   }
+  dialog#short .sp-facts dd:first-of-type {
+    color: var(--dim);
+  }
+  /* the two ways to read more: two boxes side by side */
   dialog#short .sp-actions {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 10px;
   }
-  dialog#short .sp-actions .btn-primary {
-    width: 100%;
-    min-height: 56px;
-    font-size: 31px;
+  dialog#short .sp-actions .btn-primary,
+  dialog#short .sp-more {
+    min-height: 46px;
+    margin: 0;
+    padding: 0 6px 3px;
+    border: 1.5px solid var(--star);
+    border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px;
+    font-size: min(24px, 6.2vw);
+    text-decoration: none;
+    text-transform: none;
+    white-space: nowrap;
   }
   dialog#short .sp-more {
-    align-self: center;
-    margin: 0;
-  }
-  .sb-page .sp-roofs {
-    height: 76px;
+    border-radius: 18px 225px 18px 255px / 255px 18px 225px 18px;
   }
 }
-/* the narrowest phones: no room for a note beside the painting, so it goes back underneath */
-@media (max-width: 350px) {
-  dialog#short .sp-text h1 {
-    font-size: 54px;
+/* a tall phone has room for the heading, the rooftops and the painting's title */
+@media (max-width: 639px) and (min-height: 700px) {
+  dialog#short {
+    --s-frame: clamp(100px, calc((100dvh - 520px) / 1.32), 168px);
+    --s-roofs: clamp(0px, calc(100dvh - 752px), 76px);
+    --s-lead: 12px;
+    --s-li: 5px;
   }
-  dialog#short .sp-bay-art {
+  dialog#short .sp-h {
     display: block;
-    align-self: center;
-    width: 78%;
-  }
-  dialog#short .sp-plate {
-    margin-top: 22px;
-    padding-left: 40px;
-    font-size: 20px;
-  }
-  dialog#short .sp-plate b {
-    font-size: 28px;
-  }
-  dialog#short .sp-go {
+    margin-bottom: 0;
     font-size: 24px;
   }
-  dialog#short .ink-arrow {
-    top: -24px;
-    left: 0;
-    width: 34px;
-    height: 56px;
-    transform: none;
+}
+@media (max-width: 639px) and (min-height: 800px) {
+  dialog#short {
+    --s-roofs: clamp(0px, calc(100dvh - 790px), 76px);
+    --s-li: 7px;
+    --s-work: 12px;
   }
-  dialog#short .sp-facts dd {
-    gap: 0 16px;
+  dialog#short .sp-ttl {
+    display: block;
   }
-  dialog#short .sp-actions .btn-primary {
-    font-size: 27px;
+  dialog#short .sp-bay-art {
+    margin-bottom: 14px;
+  }
+}
+/* a short phone: the lines that can go, go */
+@media (max-width: 639px) and (max-height: 610px) {
+  dialog#short {
+    --s-frame: clamp(100px, calc((100dvh - 448px) / 1.32), 168px);
+  }
+  dialog#short .sp-facts dd:first-of-type {
+    display: none;
+  }
+}
+@media (max-width: 639px) and (max-height: 580px) {
+  dialog#short {
+    --s-frame: clamp(100px, calc((100dvh - 396px) / 1.32), 168px);
+  }
+  dialog#short .sp-lead {
+    display: none;
+  }
+}
+/* the narrowest phones wrap every line once more, so the summary line gives its place to the rest */
+@media (max-width: 340px) {
+  dialog#short {
+    --s-frame: clamp(84px, calc((100dvh - 456px) / 1.32), 150px);
+  }
+  dialog#short .sp-lead,
+  dialog#short .sp-facts dd:first-of-type {
+    display: none;
   }
 }

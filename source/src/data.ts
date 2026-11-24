@@ -10,6 +10,8 @@ export interface Project {
   name: string;
   dates: string;
   tagline: string;
+  /** The tagline again in one short line, for a phone screen that must not scroll. Says nothing the tagline does not. */
+  brief?: string;
   stack: string[];
   bullets: string[];
   links?: Link[];
@@ -73,6 +75,7 @@ export const resume = {
       name: 'Gravity Simulator',
       dates: 'Nov 2026',
       tagline: 'Newtonian N-body simulator, from the real solar system to a 100,000-body galaxy collision.',
+      brief: 'N-body simulator, solar system to 100,000 bodies.',
       stack: ['Python', 'NumPy', 'Numba', 'pytest'],
       links: [
         { label: 'Live demo', url: 'https://jqin110-tech.github.io/nbody-gravity-simulator/' },
@@ -89,6 +92,7 @@ export const resume = {
       name: 'Tickerchatter',
       dates: 'Jun – Nov 2026',
       tagline: 'Live site that flags stocks whose news coverage suddenly breaks from normal.',
+      brief: 'Live site that flags stocks with unusual news.',
       stack: ['Python', 'Statistics', 'pytest', 'GitHub Actions'],
       links: [
         { label: 'Live site', url: 'https://jqin110-tech.github.io/tickerchatter/' },
@@ -122,6 +126,7 @@ export const resume = {
       name: 'Backtester',
       dates: 'Aug – Nov 2026',
       tagline: 'Research backtester that tests a trading rule and an ML model honestly.',
+      brief: 'Tests a trading rule and an ML model honestly.',
       stack: ['Python', 'pandas', 'scikit-learn', 'pytest', 'matplotlib'],
       links: [{ label: 'Code on GitHub', url: 'https://github.com/jqin110-tech/backtester' }],
       bullets: [

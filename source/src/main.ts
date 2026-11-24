@@ -174,12 +174,12 @@ const paintStarry = mountStarry(shortArt, {
   onHover(what, x, y) {
     shortTip.classList.toggle('show', what !== null);
     if (what === null) return;
-    shortTip.textContent = what === -1 ? 'Enter the galaxy' : starZones[what].title;
+    shortTip.textContent = what === -1 ? 'Play the game' : starZones[what].title;
     shortTip.style.left = `${x}px`;
     shortTip.style.top = `${y}px`;
   },
   onStar: (i) => openRoom(starZones[i]),
-  onHole: () => short.close(),
+  onHole: () => playFromShort(),
   // with motion turned down nothing repaints on its own, so a touch asks for one frame
   invalidate: () => reduced.matches && short.open && !shortFrame && (shortFrame = requestAnimationFrame(paintShortArt)),
 });
@@ -189,6 +189,11 @@ function paintShortArt(now: number) {
   // a room opened from a star sits on top: the painting waits underneath
   if (!dialog.open) paintStarry(now / 1000, reduced.matches);
   if (!reduced.matches) shortFrame = requestAnimationFrame(paintShortArt);
+}
+/** Play the game, from the short page: whoever pressed that has already said start, so the title screen is not asked to say it again. */
+function playFromShort() {
+  short.close();
+  if (!titleCard.hidden) $<HTMLButtonElement>('[data-start]').click();
 }
 /** The plain address (and #short) opens the short version. Any other address goes where it says. */
 const shortFirst = () => location.hash === '' || location.hash === '#short';
@@ -213,7 +218,8 @@ document.addEventListener('click', (e) => {
   if (el.closest('[data-short]')) {
     openShort();
     setHash('');
-  } else if (el.closest('[data-short-full]')) short.close();
+  } else if (el.closest('[data-short-full]')) playFromShort();
+  else if (el.closest('[data-short-read]')) toResume();
   else if (el.closest('[data-short-resume]')) openQuick();
   else if (el.closest('[data-short-star]')) openRoom(starZones[Number(el.closest<HTMLElement>('[data-short-star]')!.dataset.shortStar)]);
 });

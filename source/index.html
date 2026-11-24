@@ -48,6 +48,7 @@
             </div>
           </details>
           <button class="mode mode-compact" data-mode role="switch" aria-checked="true" aria-label="Dark mode" title="Dark mode"><span class="mode-track" aria-hidden="true"><i></i></span></button>
+          <button class="pill hud-home" data-short><span class="mono">← HOME</span></button>
           <button class="pill" data-map aria-pressed="false"><span class="mono" data-map-label>MAP</span></button>
           <a class="pill" href="#resume" data-to-resume><span class="mono">RESUME ↓</span></a>
           <button class="pill hud-menu" data-menu aria-expanded="false" aria-controls="travel"><span class="mono">MENU</span></button>
@@ -81,6 +82,7 @@
         <div class="sheet-head"><span class="mono">Go to</span><button class="sheet-close" data-menu-close>Close</button></div>
         <ol data-travel></ol>
         <div class="sheet-more">
+          <button class="pill" data-short data-menu-close>← First page</button>
           <a class="pill" href="#resume" data-to-resume>Read the resume ↓</a>
           <button class="pill" data-fullscreen hidden>Full screen</button>
         </div>
@@ -108,7 +110,7 @@
         </filter>
       </defs>
     </svg>
-    <dialog id="short" aria-labelledby="short-name"><div class="short-body" data-short-body></div></dialog>
+    <dialog id="short" aria-labelledby="short-name"><div class="short-body" data-short-body tabindex="-1" autofocus></div></dialog>
 
     <dialog id="quick" aria-labelledby="quick-name"><div class="quick-body" data-quick-body></div></dialog>
 
